@@ -1,0 +1,7 @@
+{
+  "moderate": true,
+  "allowlist": [],
+  "report-type": "summary",
+  "package-manager": "pnpm",
+  "output-format": "text"
+}

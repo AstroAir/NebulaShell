@@ -1,36 +1,162 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WebSSH Terminal
 
-## Getting Started
+A modern, secure web-based SSH terminal built with Next.js and shadcn/ui. Connect to remote servers directly from your browser with a full-featured terminal interface.
 
-First, run the development server:
+## Features
 
+### 🔐 Secure SSH Connections
+- Password and private key authentication
+- Encrypted credential handling with AES encryption
+- Rate limiting and security validation
+- Session management with automatic cleanup
+- SSH key generation, import, and export
+- Certificate-based authentication support
+
+### 🖥️ Advanced Terminal Experience
+- Real-time terminal emulation using xterm.js
+- Multiple terminal tabs with session switching
+- Support for colors, cursor positioning, and text formatting
+- Customizable themes and font settings
+- Search functionality within terminal output
+- Keyboard shortcuts and hotkeys
+- Full-screen terminal mode
+- Terminal bell notifications (visual and audio)
+
+### 📁 File Transfer & Management
+- SFTP file browser with directory navigation
+- Drag-and-drop file uploads
+- File download capabilities
+- Transfer progress indicators with speed monitoring
+- File operations (create, delete, rename directories)
+- Batch file operations
+
+### 🔖 Connection Management
+- Connection profiles and bookmarks
+- Quick connect from recent connections
+- Favorite connections with tags
+- Connection history tracking
+- Profile groups and organization
+- Import/export connection profiles
+
+### 🎨 Customization & Themes
+- Multiple built-in terminal themes (Dark, Light, Monokai, Solarized)
+- Custom theme creation and editing
+- Font family, size, and line height controls
+- Cursor style and blinking options
+- Scrollback buffer configuration
+- Terminal behavior customization
+
+### ⌨️ Keyboard & Shortcuts
+- Customizable keyboard shortcuts
+- Copy/paste with Ctrl+C/Ctrl+V
+- Tab navigation (Ctrl+T, Ctrl+W, Ctrl+Tab)
+- Font size controls (Ctrl+Plus/Minus/0)
+- Terminal clearing (Ctrl+L)
+- Context menus and right-click actions
+
+### 📊 Monitoring & Analytics
+- Real-time connection monitoring
+- Session statistics and performance metrics
+- Connection success/failure tracking
+- Usage analytics and reporting
+- SSH key usage tracking
+- Audit logs for security compliance
+
+### 🛡️ Enhanced Security
+- Session timeout warnings
+- IP whitelisting and blacklisting capabilities
+- Two-factor authentication support
+- Encrypted local storage
+- Secure credential management
+- Rate limiting and brute force protection
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+
+- pnpm (recommended) or npm
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd simple-web-terminal
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+pnpm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Start the development server:
+```bash
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Learn More
+## Usage
 
-To learn more about Next.js, take a look at the following resources:
+### Connecting to a Server
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Fill in connection details:**
+   - Hostname: The server's IP address or domain name
+   - Port: SSH port (default: 22)
+   - Username: Your username on the remote server
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Choose authentication method:**
+   - **Password**: Enter your password
+   - **Private Key**: Paste your private key (supports encrypted keys with passphrase)
 
-## Deploy on Vercel
+3. **Click Connect** to establish the SSH connection
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Terminal Features
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Full terminal emulation**: Supports all standard terminal operations
+- **Copy/Paste**: Use Ctrl+C/Ctrl+V (or Cmd+C/Cmd+V on Mac)
+- **Resize**: Terminal automatically adjusts to window size
+- **Colors and formatting**: Full support for ANSI colors and text formatting
+
+## Architecture
+
+### Frontend
+- **Next.js 15**: React framework with App Router
+- **shadcn/ui**: Modern UI component library
+- **xterm.js**: Terminal emulation
+- **Socket.IO**: Real-time communication
+- **TypeScript**: Type safety throughout
+
+### Backend
+- **Next.js API Routes**: RESTful API endpoints
+- **Socket.IO**: WebSocket server for real-time terminal communication
+- **node-ssh**: SSH client library
+- **Custom Security Layer**: Encryption, validation, and rate limiting
+
+## Security Considerations
+
+### Production Deployment
+- Use HTTPS in production
+- Set strong encryption keys
+- Configure proper firewall rules
+- Monitor logs for suspicious activity
+- Regularly update dependencies
+
+### Best Practices
+- Use private key authentication when possible
+- Implement proper access controls
+- Monitor session activity
+- Set appropriate session timeouts
+- Use strong passwords and keys
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
