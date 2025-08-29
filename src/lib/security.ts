@@ -190,6 +190,13 @@ export class SecurityManager {
       }
     }
   }
+
+  /**
+   * Reset rate limit state (for testing purposes)
+   */
+  resetRateLimit(): void {
+    this.connectionAttempts.clear();
+  }
 }
 
 export const securityManager = SecurityManager.getInstance();

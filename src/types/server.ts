@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io';
-import { SSHConnectionConfig, TerminalSize } from './ssh';
+import { SSHConnectionConfig } from './ssh'; // TerminalSize removed as not used
 
 // Extended Socket interface with custom properties
 export interface ExtendedSocket extends Socket {

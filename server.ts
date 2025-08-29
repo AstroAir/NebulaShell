@@ -4,7 +4,6 @@ import next from 'next';
 import { Server as SocketIOServer } from 'socket.io';
 import { sshManager } from './src/lib/ssh-manager';
 import {
-  ServerConfig,
   ServerError,
   ExtendedSocket,
   SSHConnectData,
@@ -14,10 +13,7 @@ import {
   ClientToServerEvents,
   InterServerEvents,
   SocketData,
-  TypedError,
-  ConnectionError,
-  AuthenticationError,
-  ValidationError
+  TypedError
 } from './src/types/server';
 
 // Server configuration

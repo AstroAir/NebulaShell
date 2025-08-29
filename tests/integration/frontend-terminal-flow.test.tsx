@@ -84,7 +84,7 @@ describe('Frontend Terminal Flow Integration', () => {
       })
 
       // Test terminal input
-      const emitSpy = jest.spyOn(mockSocket, 'emit')
+      jest.spyOn(mockSocket, 'emit')
       
       // Simulate typing in terminal (this would normally be handled by xterm.js)
       // For testing, we'll directly test the context methods
@@ -207,7 +207,7 @@ describe('Frontend Terminal Flow Integration', () => {
     })
 
     it('should handle terminal resize operations', async () => {
-      const emitSpy = jest.spyOn(mockSocket, 'emit')
+      jest.spyOn(mockSocket, 'emit')
 
       // Simulate window resize
       fireEvent(window, new Event('resize'))
@@ -304,7 +304,7 @@ describe('Frontend Terminal Flow Integration', () => {
       await user.clear(screen.getByLabelText(/password/i))
       await user.type(screen.getByLabelText(/password/i), 'correctpass')
 
-      const emitSpy = jest.spyOn(mockSocket, 'emit')
+      jest.spyOn(mockSocket, 'emit')
       await user.click(screen.getByRole('button', { name: /connect/i }))
 
       // Error should be cleared

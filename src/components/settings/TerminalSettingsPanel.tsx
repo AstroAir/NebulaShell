@@ -13,15 +13,12 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Settings, 
   Palette, 
-  Type, 
-  Keyboard, 
-  Volume2, 
+  // Type, Volume2, Plus, Trash2 - removed as not currently used
+  Keyboard,
   Eye,
   Download,
   Upload,
-  RotateCcw,
-  Plus,
-  Trash2
+  RotateCcw
 } from 'lucide-react';
 import { TerminalSettings, TerminalTheme, KeyboardShortcut } from '@/types/terminal-settings';
 import { terminalSettingsManager } from '@/lib/terminal-settings-manager';
@@ -121,7 +118,7 @@ export function TerminalSettingsPanel({ className, onClose }: TerminalSettingsPa
       try {
         const preferences = JSON.parse(e.target?.result as string);
         terminalSettingsManager.importSettings(preferences);
-      } catch (error) {
+      } catch {
         alert('Failed to import settings: Invalid file format');
       }
     };
@@ -426,7 +423,6 @@ export function TerminalSettingsPanel({ className, onClose }: TerminalSettingsPa
                             <Switch
                               checked={shortcut.enabled}
                               onCheckedChange={() => terminalSettingsManager.toggleShortcut(shortcut.id)}
-                              size="sm"
                             />
                           </div>
                         </div>

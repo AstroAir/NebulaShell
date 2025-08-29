@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+// NextRequest import removed as not used
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as NetServer } from 'http';
 import { sshManager } from '@/lib/ssh-manager';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // Store the Socket.IO server instance
 let io: SocketIOServer | undefined;
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   if (!io) {
     const httpServer: NetServer = (global as any).httpServer;
     
@@ -29,7 +29,23 @@ export async function GET(req: NextRequest) {
     io.on('connection', (socket) => {
       console.log('Client connected:', socket.id);
 
-      socket.on('ssh_connect', async (data: { config: SSHConnectionConfig }) => {
+      // Store client info for mobile optimizations
+      let clientInfo = {
+        isMobile: false,
+        lowBandwidth: false,
+        batchUpdates: false,
+        compressionEnabled: false
+      };
+
+      socket.on('client_info', (info: any) => {
+        clientInfo = { ...clientInfo, ...info };
+        console.log('Client info updated:', socket.id, clientInfo);
+      });
+
+      socket.on('ssh_connect', async (data: { config: SSHConnectionConfig; clientInfo?: any }) => {
+        if (data.clientInfo) {
+          clientInfo = { ...clientInfo, ...data.clientInfo };
+        }
         try {
           const session = await sshManager.createSession(data.config);
           await sshManager.connect(session.id);
@@ -46,12 +62,38 @@ export async function GET(req: NextRequest) {
             term: 'xterm-256color'
           } as any);
 
-          // Handle shell data
+          // Handle shell data with mobile optimizations
+          let dataBuffer = '';
+          let lastEmit = Date.now();
+          const BATCH_INTERVAL = clientInfo.batchUpdates ? 50 : 16; // 50ms for mobile, 16ms for desktop
+
           shell.on('data', (data: Buffer) => {
-            socket.emit('terminal_data', {
-              sessionId: session.id,
-              data: data.toString()
-            });
+            const dataString = data.toString();
+
+            if (clientInfo.batchUpdates) {
+              // Batch updates for mobile
+              dataBuffer += dataString;
+              const now = Date.now();
+
+              if (now - lastEmit >= BATCH_INTERVAL || dataBuffer.length > 1024) {
+                socket.emit('terminal_data', {
+                  sessionId: session.id,
+                  data: dataBuffer,
+                  batched: true,
+                  timestamp: now
+                });
+                dataBuffer = '';
+                lastEmit = now;
+              }
+            } else {
+              // Real-time updates for desktop
+              socket.emit('terminal_data', {
+                sessionId: session.id,
+                data: dataString,
+                timestamp: Date.now()
+              });
+            }
+
             sshManager.updateLastActivity(session.id);
           });
 
@@ -100,14 +142,35 @@ export async function GET(req: NextRequest) {
         }
       });
 
+      // Mobile-specific events
+      socket.on('mobile_optimize', (data: {
+        lowBandwidth?: boolean;
+        batchUpdates?: boolean;
+        compressionEnabled?: boolean;
+      }) => {
+        clientInfo = { ...clientInfo, ...data };
+        socket.emit('mobile_optimized', {
+          applied: data,
+          timestamp: Date.now()
+        });
+      });
+
+      socket.on('performance_metrics', (metrics: any) => {
+        // Log performance metrics for monitoring
+        console.log('Performance metrics received:', socket.id, {
+          isMobile: clientInfo.isMobile,
+          metrics: metrics
+        });
+      });
+
       socket.on('ssh_disconnect', () => {
         const sessionId = (socket as any).sessionId;
         const shell = (socket as any).shell;
-        
+
         if (shell) {
           shell.end();
         }
-        
+
         if (sessionId) {
           sshManager.disconnect(sessionId);
         }

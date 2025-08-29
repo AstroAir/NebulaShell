@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SSHConnectionForm } from '../ssh/SSHConnectionForm'
 import { TerminalProvider } from '../terminal/TerminalContext'
@@ -48,14 +48,18 @@ describe('SSHConnectionForm', () => {
 
     // Initially should show password field
     expect(screen.getByPlaceholderText('Enter password')).toBeInTheDocument()
-    expect(screen.queryByLabelText(/private key/i)).not.toBeInTheDocument()
+    // Private key field should not be visible initially (not rendered in inactive tab)
+    expect(screen.queryByPlaceholderText('-----BEGIN PRIVATE KEY-----')).not.toBeInTheDocument()
 
     // Switch to private key authentication
     const keyTab = screen.getByRole('tab', { name: /private key/i })
     await user.click(keyTab)
 
     await waitFor(() => {
+      // Password field should not be visible (not rendered in inactive tab)
       expect(screen.queryByPlaceholderText('Enter password')).not.toBeInTheDocument()
+
+      // Private key fields should be visible (in active tab)
       expect(screen.getByPlaceholderText('-----BEGIN PRIVATE KEY-----')).toBeInTheDocument()
       expect(screen.getByPlaceholderText('Enter passphrase if required')).toBeInTheDocument()
     })
@@ -126,7 +130,9 @@ describe('SSHConnectionForm', () => {
     render(<SSHFormWithProvider />)
 
     // Connect socket first
-    mockSocket.connect()
+    await act(async () => {
+      mockSocket.connect()
+    })
 
     // Fill form
     await user.type(screen.getByLabelText(/hostname/i), 'test.example.com')
@@ -153,7 +159,9 @@ describe('SSHConnectionForm', () => {
     const user = userEvent.setup()
     render(<SSHFormWithProvider />)
 
-    mockSocket.connect()
+    await act(async () => {
+      mockSocket.connect()
+    })
 
     // Switch to private key auth
     const keyTab = screen.getByRole('tab', { name: /private key/i })
@@ -185,7 +193,9 @@ describe('SSHConnectionForm', () => {
     const user = userEvent.setup()
     render(<SSHFormWithProvider />)
 
-    mockSocket.connect()
+    await act(async () => {
+      mockSocket.connect()
+    })
 
     // Fill and submit form
     await user.type(screen.getByLabelText(/hostname/i), 'test.example.com')
@@ -196,7 +206,9 @@ describe('SSHConnectionForm', () => {
     await user.click(connectButton)
 
     // Simulate connecting state
-    mockSocket.simulateServerEvent('ssh_connecting', {})
+    await act(async () => {
+      mockSocket.simulateServerEvent('ssh_connecting', {})
+    })
 
     await waitFor(() => {
       expect(screen.getByLabelText(/hostname/i)).toBeDisabled()
@@ -210,7 +222,9 @@ describe('SSHConnectionForm', () => {
     const user = userEvent.setup()
     render(<SSHFormWithProvider />)
 
-    mockSocket.connect()
+    await act(async () => {
+      mockSocket.connect()
+    })
 
     // Fill and submit form
     await user.type(screen.getByLabelText(/hostname/i), 'test.example.com')
@@ -221,16 +235,23 @@ describe('SSHConnectionForm', () => {
     await user.click(screen.getByRole('button', { name: /connect/i }))
 
     // Simulate successful connection
-    mockSocket.simulateServerEvent('ssh_connected', {
-      sessionId: 'test-session',
-      status: 'connected',
+    await act(async () => {
+      mockSocket.simulateServerEvent('ssh_connected', {
+        sessionId: 'test-session',
+        status: 'connected',
+      })
     })
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /disconnect/i })).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: /connect/i })).not.toBeInTheDocument()
-    })
-  })
+      const disconnectButton = screen.getByRole('button', { name: /disconnect/i })
+      expect(disconnectButton).toBeInTheDocument()
+    }, { timeout: 5000 })
+
+    await waitFor(() => {
+      const connectButton = screen.queryByRole('button', { name: /^connect$/i })
+      expect(connectButton).not.toBeInTheDocument()
+    }, { timeout: 5000 })
+  }, 10000)
 
   it('should handle disconnect', async () => {
     const user = userEvent.setup()

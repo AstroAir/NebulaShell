@@ -1,14 +1,19 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import { useTerminal } from './TerminalContext';
 import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { terminalHistoryManager } from '@/lib/terminal-history-manager';
 import { terminalCommandProcessor } from '@/lib/terminal-command-processor';
 import { terminalAutoCompleteManager } from '@/lib/terminal-autocomplete-manager';
 import { terminalAliasesManager } from '@/lib/terminal-aliases-manager';
 import { AutoCompleteDropdown, useAutoComplete, calculateDropdownPosition } from './AutoCompleteDropdown';
+import { EnhancedAutoComplete } from './EnhancedAutoComplete';
 import { CompletionSuggestion } from '@/types/terminal-autocomplete';
+import { useTerminalConfig, useMobileTerminalUtils } from '@/hooks/use-terminal-config';
+import { useResponsive } from '@/hooks/use-responsive';
+import { useTerminalTouchGestures } from '@/hooks/use-touch-gestures';
 
 interface TerminalProps {
   className?: string;
@@ -23,6 +28,31 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
   const sessionId = propSessionId || contextSessionId;
   const [isInitialized, setIsInitialized] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [useEnhancedAutoComplete] = useState(true); // setUseEnhancedAutoComplete removed as not used
+
+  // Mobile optimizations
+  const terminalConfig = useTerminalConfig();
+  const { isMobile } = useResponsive();
+  const { handleVirtualKeyboard, preventZoom, optimizeScrolling } = useMobileTerminalUtils();
+
+  // Touch gestures for terminal
+  const handleDoubleTapToSelect = () => {
+    if (xtermRef.current) {
+      // Double tap to select word at cursor
+      xtermRef.current.selectAll();
+    }
+  };
+
+  const handleLongPressForMenu = () => {
+    // Long press could show context menu (future enhancement)
+    console.log('Long press detected on terminal');
+  };
+
+  const { attachGestures: attachTerminalGestures } = useTerminalTouchGestures({
+    onDoubleTapToSelect: handleDoubleTapToSelect,
+    onLongPressForMenu: handleLongPressForMenu,
+    enabled: isMobile,
+  });
 
   // Command history state
   const [currentInput, setCurrentInput] = useState('');
@@ -31,7 +61,7 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
 
   // Auto-completion state
   const autoComplete = useAutoComplete();
-  const [isAutoCompleting, setIsAutoCompleting] = useState(false);
+  const [, setIsAutoCompleting] = useState(false); // isAutoCompleting removed as not used
 
   // Enhanced features state
   const [isMultiLineMode, setIsMultiLineMode] = useState(false);
@@ -193,8 +223,10 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
     xterm.write('\x1b[33msearch> \x1b[0m');
 
     let searchQuery = '';
-    let searchResults: any[] = [];
-    let currentResultIndex = 0;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let searchResults: any[] = []; // Currently unused but kept for future implementation
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let currentResultIndex = 0; // Currently unused but kept for future implementation
 
     // Create a temporary input handler for search
     const searchHandler = (data: string) => {
@@ -241,7 +273,8 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
     };
 
     // Temporarily replace the input handler
-    const originalHandler = xterm._core._inputHandler;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const originalHandler = xterm._core._inputHandler; // Currently unused but kept for future implementation
     xterm.onData(searchHandler);
 
     // Restore original handler after a timeout or when search is complete
@@ -300,7 +333,8 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
 
     // Find the word to replace
     const words = currentCommand.split(' ');
-    const lastWord = words[words.length - 1];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const lastWord = words[words.length - 1]; // Currently unused but kept for future implementation
 
     // Replace the last word with the completion
     const newCommand = words.slice(0, -1).concat([insertText]).join(' ');
@@ -496,6 +530,8 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
   useEffect(() => {
     if (!terminalRef.current || isInitialized || !isClient) return;
 
+    let cleanup: (() => void) | undefined;
+
     const initializeTerminal = async () => {
       // Dynamic imports to avoid SSR issues
       const { Terminal: XTerm } = await import('@xterm/xterm');
@@ -504,38 +540,27 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
 
       // CSS is imported in globals.css
 
-      // Initialize xterm.js
+      // Initialize xterm.js with responsive configuration
       const xterm = new XTerm({
-      theme: {
-        background: '#1a1a1a',
-        foreground: '#ffffff',
-        cursor: '#ffffff',
-        selectionBackground: '#3e3e3e',
-        black: '#000000',
-        red: '#e06c75',
-        green: '#98c379',
-        yellow: '#d19a66',
-        blue: '#61afef',
-        magenta: '#c678dd',
-        cyan: '#56b6c2',
-        white: '#ffffff',
-        brightBlack: '#5c6370',
-        brightRed: '#e06c75',
-        brightGreen: '#98c379',
-        brightYellow: '#d19a66',
-        brightBlue: '#61afef',
-        brightMagenta: '#c678dd',
-        brightCyan: '#56b6c2',
-        brightWhite: '#ffffff',
-      },
-      fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "SF Mono", Monaco, Consolas, "Ubuntu Mono", monospace',
-      fontSize: 14,
-      lineHeight: 1.2,
-      cursorBlink: true,
-      cursorStyle: 'block',
-      scrollback: 1000,
-      tabStopWidth: 4,
-    });
+        theme: terminalConfig.theme,
+        fontFamily: terminalConfig.fontFamily,
+        fontSize: terminalConfig.fontSize,
+        lineHeight: terminalConfig.lineHeight,
+        cursorBlink: terminalConfig.cursorBlink,
+        cursorStyle: terminalConfig.cursorStyle,
+        scrollback: terminalConfig.scrollback,
+        tabStopWidth: terminalConfig.tabStopWidth,
+        allowTransparency: terminalConfig.allowTransparency,
+        minimumContrastRatio: terminalConfig.minimumContrastRatio,
+        // Mobile-specific optimizations
+        ...(isMobile && {
+          convertEol: true, // Convert \n to \r\n for better mobile compatibility
+          disableStdin: false,
+          macOptionIsMeta: true, // Better handling of meta key on mobile
+          rightClickSelectsWord: false, // Disable right-click selection on mobile
+          screenReaderMode: false, // Disable for better performance on mobile
+        }),
+      });
 
     // Add addons
     const fitAddon = new FitAddon();
@@ -547,8 +572,26 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
     // Open terminal
     if (terminalRef.current) {
       xterm.open(terminalRef.current);
+
+      // Apply mobile optimizations
+      if (isMobile) {
+        preventZoom(terminalRef.current);
+        optimizeScrolling(terminalRef.current);
+
+        // Attach touch gestures
+        const gestureCleanup = attachTerminalGestures(terminalRef.current);
+
+        // Find the terminal viewport element and optimize it
+        const viewport = terminalRef.current.querySelector('.xterm-viewport') as HTMLElement;
+        if (viewport) {
+          optimizeScrolling(viewport);
+        }
+
+        // Store cleanup function for later
+        (terminalRef.current as any)._gestureCleanup = gestureCleanup;
+      }
     }
-    
+
     // Fit terminal to container
     fitAddon.fit();
 
@@ -696,7 +739,11 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
       // Store references
       xtermRef.current = xterm;
       fitAddonRef.current = fitAddon;
-      setIsInitialized(true);
+
+      // Set initialized state after everything is set up
+      setTimeout(() => {
+        setIsInitialized(true);
+      }, 0);
 
       // Initial welcome message
       xterm.writeln('\x1b[1;32mWebSSH Terminal\x1b[0m');
@@ -705,20 +752,44 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
 
       // Handle window resize
       const handleResize = () => {
-        if (fitAddonRef.current) {
-          fitAddonRef.current.fit();
+        try {
+          if (fitAddonRef.current) {
+            fitAddonRef.current.fit();
+          }
+        } catch (error) {
+          console.warn('Terminal resize failed:', error);
         }
       };
 
       window.addEventListener('resize', handleResize);
 
-      return () => {
+      // Handle virtual keyboard on mobile
+      let virtualKeyboardCleanup: (() => void) | undefined;
+      if (isMobile) {
+        virtualKeyboardCleanup = handleVirtualKeyboard();
+      }
+
+      cleanup = () => {
         window.removeEventListener('resize', handleResize);
+        if (virtualKeyboardCleanup) {
+          virtualKeyboardCleanup();
+        }
+        // Clean up touch gestures
+        if (terminalRef.current && (terminalRef.current as any)._gestureCleanup) {
+          (terminalRef.current as any)._gestureCleanup();
+        }
         xterm.dispose();
       };
     };
 
     initializeTerminal();
+
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInitialized, sendInput, resize, isClient]);
 
   // Handle terminal data from socket
@@ -796,6 +867,9 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
       <Card className={`p-0 overflow-hidden ${className}`}>
         <div
           ref={terminalRef}
+          data-testid="terminal-container"
+          role="region"
+          aria-label="Terminal"
           className="w-full h-full min-h-[400px] bg-[#1a1a1a]"
           style={{
             fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "SF Mono", Monaco, Consolas, "Ubuntu Mono", monospace'
@@ -804,23 +878,45 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
       </Card>
 
       {/* Auto-completion dropdown */}
-      <AutoCompleteDropdown
-        suggestions={autoComplete.suggestions}
-        selectedIndex={autoComplete.selectedIndex}
-        position={autoComplete.position}
-        visible={autoComplete.isVisible}
-        onSelect={(suggestion) => {
-          if (xtermRef.current) {
-            handleCompletionSelect(suggestion, xtermRef.current);
-          }
-        }}
-        onClose={() => {
-          autoComplete.hide();
-          setIsAutoCompleting(false);
-        }}
-        showTypes={terminalAutoCompleteManager.getSettings().showTypes}
-        showDescriptions={terminalAutoCompleteManager.getSettings().showDescriptions}
-      />
+      {useEnhancedAutoComplete ? (
+        <EnhancedAutoComplete
+          suggestions={autoComplete.suggestions}
+          selectedIndex={autoComplete.selectedIndex}
+          position={autoComplete.position}
+          visible={autoComplete.isVisible}
+          currentInput={currentInput}
+          onSelect={(suggestion) => {
+            if (xtermRef.current) {
+              handleCompletionSelect(suggestion, xtermRef.current);
+            }
+          }}
+          onClose={() => {
+            autoComplete.hide();
+            setIsAutoCompleting(false);
+          }}
+          enableFuzzySearch={terminalAutoCompleteManager.getSettings().enableFuzzySearch !== false}
+          showCategories={terminalAutoCompleteManager.getSettings().showCategories !== false}
+          maxHeight={isMobile ? 250 : 300}
+        />
+      ) : (
+        <AutoCompleteDropdown
+          suggestions={autoComplete.suggestions}
+          selectedIndex={autoComplete.selectedIndex}
+          position={autoComplete.position}
+          visible={autoComplete.isVisible}
+          onSelect={(suggestion) => {
+            if (xtermRef.current) {
+              handleCompletionSelect(suggestion, xtermRef.current);
+            }
+          }}
+          onClose={() => {
+            autoComplete.hide();
+            setIsAutoCompleting(false);
+          }}
+          showTypes={terminalAutoCompleteManager.getSettings().showTypes}
+          showDescriptions={terminalAutoCompleteManager.getSettings().showDescriptions}
+        />
+      )}
     </div>
   );
 }

@@ -4,10 +4,7 @@ import {
   TerminalTheme,
   KeyboardShortcut,
   TerminalPreferences,
-  TerminalEnhancedFeatures,
-  TerminalHistorySettings,
-  TerminalAutoCompleteSettings,
-  TerminalAliasSettings
+  // TerminalEnhancedFeatures, TerminalHistorySettings, TerminalAutoCompleteSettings, TerminalAliasSettings - removed as not currently used
 } from '@/types/terminal-settings';
 import { logger } from './logger';
 
@@ -22,7 +19,10 @@ export class TerminalSettingsManager extends EventEmitter {
     this.settings = this.getDefaultSettings();
     this.initializeBuiltInThemes();
     this.initializeDefaultShortcuts();
-    this.loadFromStorage();
+    // Only load from storage on the client side
+    if (typeof window !== 'undefined') {
+      this.loadFromStorage();
+    }
   }
 
   private getDefaultSettings(): TerminalSettings {
@@ -513,6 +513,11 @@ export class TerminalSettingsManager extends EventEmitter {
 
   // Storage
   private saveToStorage(): void {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const preferences: TerminalPreferences = {
         settings: this.settings,
@@ -524,13 +529,18 @@ export class TerminalSettingsManager extends EventEmitter {
 
       localStorage.setItem(this.storageKey, JSON.stringify(preferences));
     } catch (error) {
-      logger.error('Failed to save terminal settings', { 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      logger.error('Failed to save terminal settings', {
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   private loadFromStorage(): void {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const stored = localStorage.getItem(this.storageKey);
       if (!stored) return;

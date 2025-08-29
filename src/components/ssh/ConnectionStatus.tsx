@@ -56,7 +56,7 @@ export function ConnectionStatus({ className }: ConnectionStatusProps) {
   };
 
   return (
-    <div className={className}>
+    <div className={className} role="status" aria-live="polite">
       <div className="flex items-center gap-2 mb-2">
         <Badge variant={getStatusVariant()} className="flex items-center gap-1">
           {getStatusIcon()}

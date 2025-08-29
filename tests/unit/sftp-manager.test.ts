@@ -18,24 +18,28 @@ describe('SFTPManager', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Use the singleton instance
-    sftpManager = require('../../src/lib/sftp-manager').sftpManager
+    // Setup mocked dependencies
     mockSSHManager = sshManager as jest.Mocked<typeof sshManager>
     mockLogger = logger as jest.Mocked<typeof logger>
 
     // Setup mock SFTP client
     mockSftpClient = {
-      connect: jest.fn().mockResolvedValue(undefined),
-      end: jest.fn().mockResolvedValue(undefined),
+      connect: jest.fn().mockResolvedValue(''),
+      end: jest.fn().mockResolvedValue(true),
       list: jest.fn().mockResolvedValue([]),
       get: jest.fn().mockResolvedValue(Buffer.from('test')),
-      put: jest.fn().mockResolvedValue(undefined),
-      mkdir: jest.fn().mockResolvedValue(undefined),
-      rmdir: jest.fn().mockResolvedValue(undefined),
-      delete: jest.fn().mockResolvedValue(undefined),
-      rename: jest.fn().mockResolvedValue(undefined),
+      put: jest.fn().mockResolvedValue(''),
+      mkdir: jest.fn().mockResolvedValue(''),
+      rmdir: jest.fn().mockResolvedValue(''),
+      delete: jest.fn().mockResolvedValue(''),
+      rename: jest.fn().mockResolvedValue(''),
       stat: jest.fn().mockResolvedValue({ size: 1024 }),
+      exists: jest.fn().mockResolvedValue(true),
     } as any
+
+    // Mock the SftpClient constructor
+    const SftpClientMock = SftpClient as jest.MockedClass<typeof SftpClient>
+    SftpClientMock.mockImplementation(() => mockSftpClient)
 
     // Setup default mock behaviors
     mockSSHManager.getSSHConnection.mockReturnValue({
@@ -51,10 +55,6 @@ describe('SFTPManager', () => {
 
   describe('createSFTPConnection', () => {
     it('should create SFTP connection successfully', async () => {
-      // Mock the SftpClient constructor to return our mock
-      const mockSftpClientConstructor = jest.fn().mockImplementation(() => mockSftpClient)
-      jest.doMock('ssh2-sftp-client', () => mockSftpClientConstructor)
-
       const sftp = await sftpManager.createSFTPConnection(sessionId)
 
       expect(mockSSHManager.getSSHConnection).toHaveBeenCalledWith(sessionId)
@@ -86,6 +86,10 @@ describe('SFTPManager', () => {
     it('should handle SFTP connection errors', async () => {
       const connectionError = new Error('SFTP connection failed')
       mockSftpClient.connect.mockRejectedValue(connectionError)
+
+      // Mock the SftpClient constructor to return our mock
+      const SftpClientMock = SftpClient as jest.MockedClass<typeof SftpClient>
+      SftpClientMock.mockImplementation(() => mockSftpClient)
 
       await expect(sftpManager.createSFTPConnection(sessionId)).rejects.toThrow(
         'SFTP connection failed'
@@ -188,17 +192,19 @@ describe('SFTPManager', () => {
   })
 
   describe('performFileOperation', () => {
-    beforeEach(async () => {
-      await sftpManager.createSFTPConnection(sessionId)
+    beforeEach(() => {
+      // Set up SFTP client in the manager's cache
+      setupSFTPClient()
     })
 
     it('should create directory successfully', async () => {
       const operation = {
         type: 'create_directory' as const,
         source: '/home/user/newdir',
+        sessionId,
       }
 
-      mockSftpClient.mkdir.mockResolvedValue(undefined)
+      mockSftpClient.mkdir.mockResolvedValue('')
 
       const result = await sftpManager.performFileOperation(sessionId, operation)
 
@@ -210,12 +216,15 @@ describe('SFTPManager', () => {
       const operation = {
         type: 'delete' as const,
         source: '/home/user/test.txt',
+        sessionId,
       }
 
-      mockSftpClient.delete.mockResolvedValue(undefined)
+      mockSftpClient.stat.mockResolvedValue({ isDirectory: false } as any)
+      mockSftpClient.delete.mockResolvedValue('')
 
       const result = await sftpManager.performFileOperation(sessionId, operation)
 
+      expect(mockSftpClient.stat).toHaveBeenCalledWith('/home/user/test.txt')
       expect(mockSftpClient.delete).toHaveBeenCalledWith('/home/user/test.txt')
       expect(result.success).toBe(true)
     })
@@ -225,9 +234,10 @@ describe('SFTPManager', () => {
         type: 'rename' as const,
         source: '/home/user/old.txt',
         destination: '/home/user/new.txt',
+        sessionId,
       }
 
-      mockSftpClient.rename.mockResolvedValue(undefined)
+      mockSftpClient.rename.mockResolvedValue('')
 
       const result = await sftpManager.performFileOperation(sessionId, operation)
 
@@ -239,9 +249,11 @@ describe('SFTPManager', () => {
       const operation = {
         type: 'delete' as const,
         source: '/home/user/nonexistent.txt',
+        sessionId,
       }
 
       const deleteError = new Error('File not found')
+      mockSftpClient.stat.mockResolvedValue({ isDirectory: false } as any)
       mockSftpClient.delete.mockRejectedValue(deleteError)
 
       const result = await sftpManager.performFileOperation(sessionId, operation)
@@ -261,7 +273,7 @@ describe('SFTPManager', () => {
       const remotePath = '/home/user'
       const fileName = 'test.txt'
 
-      mockSftpClient.put.mockResolvedValue(undefined)
+      mockSftpClient.put.mockResolvedValue('')
 
       const result = await sftpManager.uploadFile(sessionId, fileBuffer, remotePath, fileName)
 
@@ -310,7 +322,7 @@ describe('SFTPManager', () => {
   describe('connection management', () => {
     it('should close SFTP connection', async () => {
       setupSFTPClient()
-      mockSftpClient.end.mockResolvedValue(undefined)
+      mockSftpClient.end.mockResolvedValue(true)
 
       await sftpManager.closeSFTPConnection(sessionId)
 

@@ -23,7 +23,10 @@ export class SSHKeyManager extends EventEmitter {
 
   constructor() {
     super();
-    this.loadFromStorage();
+    // Only load from storage on the client side
+    if (typeof window !== 'undefined') {
+      this.loadFromStorage();
+    }
   }
 
   // Key Generation
@@ -33,7 +36,7 @@ export class SSHKeyManager extends EventEmitter {
         case 'rsa':
           return this.generateRSAKey(options.bits || 2048, options.passphrase, options.comment);
         case 'ed25519':
-          return this.generateEd25519Key(options.passphrase, options.comment);
+          return this.generateEd25519Key();
         default:
           throw new Error(`Key type ${options.type} not supported`);
       }
@@ -67,7 +70,7 @@ export class SSHKeyManager extends EventEmitter {
     };
   }
 
-  private generateEd25519Key(passphrase?: string, comment?: string): SSHKeyPair {
+  private generateEd25519Key(): SSHKeyPair {
     // Note: node-forge doesn't support Ed25519, so this is a simplified implementation
     // In a real application, you'd use a library that supports Ed25519
     throw new Error('Ed25519 key generation not implemented in this demo');
@@ -156,7 +159,7 @@ export class SSHKeyManager extends EventEmitter {
       const key = forge.pki.privateKeyFromPem(privateKey);
       const publicKey = forge.pki.setRsaPublicKey(key.n, key.e);
       return forge.ssh.publicKeyToOpenSSH(publicKey);
-    } catch (error) {
+    } catch {
       throw new Error('Failed to extract public key from private key');
     }
   }
@@ -204,7 +207,7 @@ export class SSHKeyManager extends EventEmitter {
         }
       }
 
-    } catch (error) {
+    } catch {
       if (!hasPassphrase) {
         errors.push('Invalid private key format');
         isValid = false;
@@ -364,22 +367,32 @@ export class SSHKeyManager extends EventEmitter {
 
   // Storage
   private saveToStorage(): void {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const data = {
         keys: Array.from(this.state.keys.entries()),
         defaultKeyId: this.state.defaultKeyId,
         usageHistory: this.state.usageHistory,
       };
-      
+
       localStorage.setItem(this.storageKey, JSON.stringify(data));
     } catch (error) {
-      logger.error('Failed to save SSH keys to storage', { 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      logger.error('Failed to save SSH keys to storage', {
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   private loadFromStorage(): void {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const stored = localStorage.getItem(this.storageKey);
       if (!stored) return;

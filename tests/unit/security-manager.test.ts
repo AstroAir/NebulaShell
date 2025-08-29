@@ -4,7 +4,7 @@ import { SSHConnectionConfig } from '../../src/types/ssh'
 describe('SecurityManager', () => {
   beforeEach(() => {
     // Reset rate limiting state
-    securityManager['rateLimitMap'] = new Map()
+    securityManager.resetRateLimit()
   })
 
   describe('validateSSHConfig', () => {

@@ -25,7 +25,15 @@ export class MockSocket {
 
   emit(event: string, ...args: any[]) {
     const callbacks = this.events.get(event) || []
-    callbacks.forEach(callback => callback(...args))
+    // Check if we're in a test environment and wrap in act if available
+    if (typeof global !== 'undefined' && (global as any).IS_REACT_ACT_ENVIRONMENT) {
+      const { act } = require('@testing-library/react')
+      act(() => {
+        callbacks.forEach(callback => callback(...args))
+      })
+    } else {
+      callbacks.forEach(callback => callback(...args))
+    }
   }
 
   connect() {
@@ -50,7 +58,9 @@ export class MockSocket {
 
 export const mockIo = jest.fn(() => new MockSocket())
 
-export default {
+const mockSocketIO = {
   io: mockIo,
   MockSocket,
 }
+
+export default mockSocketIO;

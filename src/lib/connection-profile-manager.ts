@@ -19,7 +19,10 @@ export class ConnectionProfileManager extends EventEmitter {
 
   constructor() {
     super();
-    this.loadFromStorage();
+    // Only load from storage on the client side
+    if (typeof window !== 'undefined') {
+      this.loadFromStorage();
+    }
   }
 
   // Profile Management
@@ -365,6 +368,11 @@ export class ConnectionProfileManager extends EventEmitter {
 
   // Storage
   private saveToStorage(): void {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const data = {
         profiles: Array.from(this.profiles.entries()),
@@ -372,7 +380,7 @@ export class ConnectionProfileManager extends EventEmitter {
         history: this.history,
         quickConnect: this.quickConnect,
       };
-      
+
       localStorage.setItem(this.storageKey, JSON.stringify(data));
     } catch (error) {
       logger.error('Failed to save profiles to storage', { error: error instanceof Error ? error.message : 'Unknown error' });
@@ -380,6 +388,11 @@ export class ConnectionProfileManager extends EventEmitter {
   }
 
   private loadFromStorage(): void {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const stored = localStorage.getItem(this.storageKey);
       if (!stored) return;

@@ -19,7 +19,10 @@ export class TerminalHistoryManager extends EventEmitter {
   constructor() {
     super();
     this.state = this.getDefaultState();
-    this.loadFromStorage();
+    // Only load from storage on the client side
+    if (typeof window !== 'undefined') {
+      this.loadFromStorage();
+    }
   }
 
   private getDefaultState(): CommandHistoryState {
@@ -253,6 +256,11 @@ export class TerminalHistoryManager extends EventEmitter {
 
   // Storage
   private saveToStorage(): void {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const data = {
         sessions: Array.from(this.state.sessions.entries()).map(([id, session]) => ({
@@ -266,13 +274,18 @@ export class TerminalHistoryManager extends EventEmitter {
       localStorage.setItem(this.storageKey, JSON.stringify(data));
       localStorage.setItem(this.settingsKey, JSON.stringify(this.state.settings));
     } catch (error) {
-      logger.error('Failed to save command history', { 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      logger.error('Failed to save command history', {
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   private loadFromStorage(): void {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       // Load settings
       const settingsData = localStorage.getItem(this.settingsKey);

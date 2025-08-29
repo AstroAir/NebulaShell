@@ -12,7 +12,7 @@ export class MockSSHConnection extends EventEmitter {
     return this
   }
 
-  async requestShell(options: any = {}) {
+  async requestShell() {
     const shell = new MockShell()
     return shell
   }
@@ -72,8 +72,10 @@ export class MockShell extends EventEmitter {
 
 export const mockNodeSSH = jest.fn(() => new MockSSHConnection())
 
-export default {
+const mockSSH = {
   NodeSSH: mockNodeSSH,
   MockSSHConnection,
   MockShell,
 }
+
+export default mockSSH;

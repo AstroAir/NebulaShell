@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TerminalProvider, useTerminal } from '../terminal/TerminalContext'
 import { MockSocket } from '../../../tests/mocks/socket.io'
-import { SSHConnectionConfig } from '../../types/ssh'
+// SSHConnectionConfig import removed as it's not used
 
 // Mock socket.io-client
 jest.mock('socket.io-client', () => ({

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,9 +17,7 @@ import {
   Clock,
   Server,
   Tag,
-  FolderPlus,
-  Download,
-  Upload
+  // FolderPlus, Download, Upload - removed as not currently used
 } from 'lucide-react';
 import {
   Dialog,
@@ -41,34 +39,16 @@ interface ConnectionProfilesProps {
 
 export function ConnectionProfiles({ className, onConnect }: ConnectionProfilesProps) {
   const [profiles, setProfiles] = useState<ConnectionProfile[]>([]);
-  const [groups, setGroups] = useState<ProfileGroup[]>([]);
+  const [, setGroups] = useState<ProfileGroup[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingProfile, setEditingProfile] = useState<ConnectionProfile | null>(null);
+  const [, setEditingProfile] = useState<ConnectionProfile | null>(null);
 
   const { connect } = useTerminal();
 
-  useEffect(() => {
-    loadProfiles();
-    
-    const handleProfileCreated = () => loadProfiles();
-    const handleProfileUpdated = () => loadProfiles();
-    const handleProfileDeleted = () => loadProfiles();
-    
-    connectionProfileManager.on('profileCreated', handleProfileCreated);
-    connectionProfileManager.on('profileUpdated', handleProfileUpdated);
-    connectionProfileManager.on('profileDeleted', handleProfileDeleted);
-    
-    return () => {
-      connectionProfileManager.off('profileCreated', handleProfileCreated);
-      connectionProfileManager.off('profileUpdated', handleProfileUpdated);
-      connectionProfileManager.off('profileDeleted', handleProfileDeleted);
-    };
-  }, []);
-
-  const loadProfiles = () => {
+  const loadProfiles = useCallback(() => {
     const searchFilter = {
       query: searchQuery || undefined,
       tags: selectedTags.length > 0 ? selectedTags : undefined,
@@ -76,14 +56,32 @@ export function ConnectionProfiles({ className, onConnect }: ConnectionProfilesP
       sortBy: 'lastUsed' as const,
       sortOrder: 'desc' as const,
     };
-    
+
     setProfiles(connectionProfileManager.searchProfiles(searchFilter));
     setGroups(connectionProfileManager.getAllGroups());
-  };
+  }, [searchQuery, selectedTags, showFavoritesOnly]);
 
   useEffect(() => {
     loadProfiles();
-  }, [searchQuery, selectedTags, showFavoritesOnly]);
+
+    const handleProfileCreated = () => loadProfiles();
+    const handleProfileUpdated = () => loadProfiles();
+    const handleProfileDeleted = () => loadProfiles();
+
+    connectionProfileManager.on('profileCreated', handleProfileCreated);
+    connectionProfileManager.on('profileUpdated', handleProfileUpdated);
+    connectionProfileManager.on('profileDeleted', handleProfileDeleted);
+
+    return () => {
+      connectionProfileManager.off('profileCreated', handleProfileCreated);
+      connectionProfileManager.off('profileUpdated', handleProfileUpdated);
+      connectionProfileManager.off('profileDeleted', handleProfileDeleted);
+    };
+  }, [loadProfiles]);
+
+  useEffect(() => {
+    loadProfiles();
+  }, [loadProfiles]);
 
   const handleConnect = (profile: ConnectionProfile) => {
     const config = {

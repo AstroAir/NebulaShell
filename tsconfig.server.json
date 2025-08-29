@@ -35,6 +35,10 @@
     ".next",
     "dist",
     "src/app/**/*.tsx",
-    "src/components/**/*.tsx"
+    "src/components/**/*.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**/*",
+    "tests/**/*"
   ]
 }

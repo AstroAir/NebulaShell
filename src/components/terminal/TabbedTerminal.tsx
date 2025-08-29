@@ -1,17 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, 
-  X, 
-  MoreHorizontal, 
-  Copy, 
-  Edit3, 
-  Wifi, 
+import {
+  Plus,
+  X,
+  MoreHorizontal,
+  Copy,
+  Edit3,
+  Wifi,
   WifiOff,
   Loader2,
   AlertCircle
@@ -25,19 +25,59 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Terminal } from './Terminal';
 import { terminalSessionManager } from '@/lib/terminal-session-manager';
-import { TerminalTab, TerminalSession } from '@/types/terminal-session';
+import { TerminalTab } from '@/types/terminal-session';
 import { useTerminal } from './TerminalContext';
+import { usePerformanceMonitor, useStableCallback } from '@/hooks/use-performance-monitor';
+import { SkeletonTerminal } from '@/components/ui/skeleton-enhanced';
+import { useResponsive } from '@/hooks/use-responsive';
+import { KeyboardShortcuts } from '@/components/keyboard/KeyboardShortcuts';
+import { useSwipeNavigation } from '@/hooks/use-touch-gestures';
+import { cn } from '@/lib/utils';
 
 interface TabbedTerminalProps {
   className?: string;
+  onToggleHelp?: () => void;
+  onToggleSettings?: () => void;
+  onToggleLayoutSettings?: () => void;
+  onToggleFullscreen?: () => void;
+  onToggleSidebar?: () => void;
 }
 
-export function TabbedTerminal({ className }: TabbedTerminalProps) {
+export function TabbedTerminal({
+  className,
+  onToggleHelp,
+  onToggleSettings,
+  onToggleLayoutSettings,
+  onToggleFullscreen,
+  onToggleSidebar,
+}: TabbedTerminalProps) {
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
-  const { connectionStatus } = useTerminal();
+  const { } = useTerminal(); // connectionStatus removed as not used
+  const { isMobile } = useResponsive(); // isTablet removed as not used
+
+  // Swipe navigation for mobile
+  const handleSwipeLeft = useCallback(() => {
+    if (!activeTabId || tabs.length <= 1) return;
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTabId);
+    const nextIndex = (currentIndex + 1) % tabs.length;
+    handleTabClick(tabs[nextIndex].id);
+  }, [activeTabId, tabs]);
+
+  const handleSwipeRight = useCallback(() => {
+    if (!activeTabId || tabs.length <= 1) return;
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTabId);
+    const prevIndex = currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
+    handleTabClick(tabs[prevIndex].id);
+  }, [activeTabId, tabs]);
+
+  const { attachGestures } = useSwipeNavigation({
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+    enabled: isMobile && tabs.length > 1,
+  });
 
   // Update tabs when session manager changes
   useEffect(() => {
@@ -111,6 +151,61 @@ export function TabbedTerminal({ className }: TabbedTerminalProps) {
     terminalSessionManager.closeAllTabs();
   };
 
+  // Enhanced tab navigation for keyboard shortcuts
+  const handleNextTab = useCallback(() => {
+    if (tabs.length <= 1) return;
+
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTabId);
+    const nextIndex = (currentIndex + 1) % tabs.length;
+    terminalSessionManager.activateTab(tabs[nextIndex].id);
+  }, [tabs, activeTabId]);
+
+  const handlePrevTab = useCallback(() => {
+    if (tabs.length <= 1) return;
+
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTabId);
+    const prevIndex = currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
+    terminalSessionManager.activateTab(tabs[prevIndex].id);
+  }, [tabs, activeTabId]);
+
+  // Focus terminal input
+  const handleFocusTerminal = useCallback(() => {
+    const terminalElement = document.querySelector('.xterm-helper-textarea') as HTMLTextAreaElement;
+    if (terminalElement) {
+      terminalElement.focus();
+    }
+  }, []);
+
+  // Clear current terminal
+  const handleClearTerminal = useCallback(() => {
+    const event = new CustomEvent('clear-terminal', { detail: { tabId: activeTabId } });
+    document.dispatchEvent(event);
+  }, [activeTabId]);
+
+  // Copy selection from terminal
+  const handleCopySelection = useCallback(() => {
+    const event = new CustomEvent('copy-selection', { detail: { tabId: activeTabId } });
+    document.dispatchEvent(event);
+  }, [activeTabId]);
+
+  // Paste to terminal
+  const handlePasteClipboard = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const event = new CustomEvent('paste-text', { detail: { tabId: activeTabId, text } });
+      document.dispatchEvent(event);
+    } catch (error) {
+      console.error('Failed to paste from clipboard:', error);
+    }
+  }, [activeTabId]);
+
+  // Close current tab
+  const handleCloseCurrentTab = useCallback(() => {
+    if (activeTabId) {
+      terminalSessionManager.closeTab(activeTabId);
+    }
+  }, [activeTabId]);
+
   const startEditing = (tab: TerminalTab) => {
     setEditingTabId(tab.id);
     setEditingTitle(tab.title);
@@ -130,23 +225,38 @@ export function TabbedTerminal({ className }: TabbedTerminalProps) {
   };
 
   const activeSession = terminalSessionManager.getActiveSession();
+  const terminalContentRef = useRef<HTMLDivElement>(null);
+
+  // Attach swipe gestures to terminal content
+  useEffect(() => {
+    if (isMobile && terminalContentRef.current) {
+      return attachGestures(terminalContentRef.current);
+    }
+  }, [isMobile, attachGestures]);
 
   return (
-    <Card className={className}>
+    <>
+      <Card className={className}>
       {/* Tab Bar */}
-      <div className="flex items-center border-b bg-muted/30">
-        <div className="flex-1 flex items-center overflow-x-auto">
+      <div className={cn(
+        "flex items-center border-b bg-muted/30",
+        isMobile && "px-2"
+      )}>
+        <div className="flex-1 flex items-center overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => (
             <div
               key={tab.id}
-              className={`
-                flex items-center gap-2 px-3 py-2 border-r cursor-pointer min-w-0 max-w-48
-                ${tab.isActive 
-                  ? 'bg-background border-b-2 border-b-primary' 
-                  : 'hover:bg-muted/50'
-                }
-                ${tab.hasUnreadActivity && !tab.isActive ? 'bg-blue-50 dark:bg-blue-950' : ''}
-              `}
+              className={cn(
+                "flex items-center gap-1 border-r cursor-pointer min-w-0 touch-target",
+                // Mobile-specific styling
+                isMobile ? "px-2 py-3 max-w-32" : "px-3 py-2 max-w-48",
+                // Active state
+                tab.isActive
+                  ? 'bg-background border-b-2 border-b-primary'
+                  : 'hover:bg-muted/50',
+                // Activity indicator
+                tab.hasUnreadActivity && !tab.isActive && 'bg-blue-50 dark:bg-blue-950'
+              )}
               onClick={() => handleTabClick(tab.id)}
             >
               {getConnectionIcon(tab.connectionStatus)}
@@ -164,12 +274,18 @@ export function TabbedTerminal({ className }: TabbedTerminalProps) {
                       setEditingTitle('');
                     }
                   }}
-                  className="h-6 text-xs"
+                  className={cn(
+                    "text-xs",
+                    isMobile ? "h-5" : "h-6"
+                  )}
                   autoFocus
                 />
               ) : (
-                <span className="truncate text-sm font-medium">
-                  {tab.title}
+                <span className={cn(
+                  "truncate font-medium",
+                  isMobile ? "text-xs" : "text-sm"
+                )}>
+                  {isMobile ? tab.title.slice(0, 8) + (tab.title.length > 8 ? '...' : '') : tab.title}
                 </span>
               )}
 
@@ -178,43 +294,58 @@ export function TabbedTerminal({ className }: TabbedTerminalProps) {
               )}
 
               <div className="flex items-center gap-1">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-5 w-5 p-0 hover:bg-muted"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => startEditing(tab)}>
-                      <Edit3 className="h-4 w-4 mr-2" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDuplicateTab(tab.id)}>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Duplicate
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleCloseOtherTabs(tab.id)}>
-                      Close Others
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleCloseAllTabs}>
-                      Close All
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {/* Show dropdown menu only on desktop or when there are multiple tabs */}
+                {(!isMobile || tabs.length > 1) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "p-0 hover:bg-muted touch-target",
+                          isMobile ? "h-6 w-6" : "h-5 w-5"
+                        )}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className={cn(
+                          isMobile ? "h-4 w-4" : "h-3 w-3"
+                        )} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => startEditing(tab)}>
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        Rename
+                      </DropdownMenuItem>
+                      {!isMobile && (
+                        <DropdownMenuItem onClick={() => handleDuplicateTab(tab.id)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleCloseOtherTabs(tab.id)}>
+                        Close Others
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleCloseAllTabs}>
+                        Close All
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
 
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-5 w-5 p-0 hover:bg-muted"
+                  className={cn(
+                    "p-0 hover:bg-muted touch-target",
+                    isMobile ? "h-6 w-6" : "h-5 w-5"
+                  )}
                   onClick={(e) => handleCloseTab(tab.id, e)}
                 >
-                  <X className="h-3 w-3" />
+                  <X className={cn(
+                    isMobile ? "h-4 w-4" : "h-3 w-3"
+                  )} />
                 </Button>
               </div>
             </div>
@@ -227,19 +358,28 @@ export function TabbedTerminal({ className }: TabbedTerminalProps) {
           size="sm"
           onClick={handleNewTab}
           disabled={!terminalSessionManager.canCreateNewTab()}
-          className="mx-2"
+          className={cn(
+            "touch-target",
+            isMobile ? "mx-1 px-2" : "mx-2"
+          )}
         >
-          <Plus className="h-4 w-4" />
+          <Plus className={cn(
+            isMobile ? "h-5 w-5" : "h-4 w-4"
+          )} />
+          {!isMobile && <span className="ml-1 hidden sm:inline">New</span>}
         </Button>
       </div>
 
       {/* Terminal Content */}
-      <CardContent className="p-0 h-[calc(100%-48px)]">
+      <CardContent
+        ref={terminalContentRef}
+        className="p-0 h-[calc(100%-48px)] relative"
+      >
         {activeSession ? (
-          <Terminal 
+          <Terminal
             key={activeSession.id}
             sessionId={activeSession.id}
-            className="h-full" 
+            className="h-full"
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -250,7 +390,40 @@ export function TabbedTerminal({ className }: TabbedTerminalProps) {
             </div>
           </div>
         )}
+
+        {/* Swipe indicator for mobile */}
+        {isMobile && tabs.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+            {tabs.map((tab) => (
+              <div
+                key={tab.id}
+                className={cn(
+                  "w-2 h-2 rounded-full transition-colors",
+                  tab.isActive ? "bg-primary" : "bg-muted-foreground/30"
+                )}
+              />
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
+
+    {/* Keyboard Shortcuts Handler */}
+    <KeyboardShortcuts
+      onToggleHelp={onToggleHelp}
+      onToggleSettings={onToggleSettings}
+      onToggleLayoutSettings={onToggleLayoutSettings}
+      onNewTab={handleNewTab}
+      onCloseTab={handleCloseCurrentTab}
+      onNextTab={handleNextTab}
+      onPrevTab={handlePrevTab}
+      onToggleFullscreen={onToggleFullscreen}
+      onToggleSidebar={onToggleSidebar}
+      onFocusTerminal={handleFocusTerminal}
+      onClearTerminal={handleClearTerminal}
+      onCopySelection={handleCopySelection}
+      onPasteClipboard={handlePasteClipboard}
+    />
+    </>
   );
 }

@@ -3,8 +3,26 @@ import { SSHConnectionConfig, SSHSession } from '@/types/ssh';
 import { securityManager } from './security';
 import { logger } from './logger';
 
+interface MobileSettings {
+  lowBandwidth: boolean;
+  batchUpdates: boolean;
+  compressionEnabled: boolean;
+  touchOptimized: boolean;
+  reducedAnimations: boolean;
+}
+
+interface PerformanceMetrics {
+  connectionTime: number;
+  lastLatency: number;
+  averageLatency: number;
+  dataTransferred: number;
+  commandsExecuted: number;
+  lastOptimization: Date;
+}
+
 export class SSHManager {
-  private sessions: Map<string, { ssh: NodeSSH; session: SSHSession }> = new Map();
+  private sessions: Map<string, { ssh: NodeSSH; session: SSHSession; mobileSettings?: MobileSettings }> = new Map();
+  private performanceMetrics: Map<string, PerformanceMetrics> = new Map();
 
   async createSession(config: SSHConnectionConfig): Promise<SSHSession> {
     // Validate configuration
@@ -133,6 +151,69 @@ export class SSHManager {
     const sessionData = this.sessions.get(sessionId);
     if (sessionData) {
       sessionData.session.lastActivity = new Date();
+
+      // Update performance metrics
+      const metrics = this.performanceMetrics.get(sessionId);
+      if (metrics) {
+        metrics.commandsExecuted++;
+      }
+    }
+  }
+
+  // Mobile optimization methods
+  setMobileSettings(sessionId: string, settings: Partial<MobileSettings>): void {
+    const sessionData = this.sessions.get(sessionId);
+    if (sessionData) {
+      sessionData.mobileSettings = {
+        ...sessionData.mobileSettings,
+        ...settings
+      } as MobileSettings;
+
+      logger.info('Mobile settings updated', { sessionId, settings });
+    }
+  }
+
+  getMobileSettings(sessionId: string): MobileSettings | undefined {
+    const sessionData = this.sessions.get(sessionId);
+    return sessionData?.mobileSettings;
+  }
+
+  optimizeForMobile(sessionId: string): boolean {
+    const sessionData = this.sessions.get(sessionId);
+    if (!sessionData) return false;
+
+    const defaultMobileSettings: MobileSettings = {
+      lowBandwidth: true,
+      batchUpdates: true,
+      compressionEnabled: true,
+      touchOptimized: true,
+      reducedAnimations: true
+    };
+
+    this.setMobileSettings(sessionId, defaultMobileSettings);
+
+    // Initialize performance metrics
+    this.performanceMetrics.set(sessionId, {
+      connectionTime: Date.now(),
+      lastLatency: 0,
+      averageLatency: 0,
+      dataTransferred: 0,
+      commandsExecuted: 0,
+      lastOptimization: new Date()
+    });
+
+    return true;
+  }
+
+  getPerformanceMetrics(sessionId: string): PerformanceMetrics | undefined {
+    return this.performanceMetrics.get(sessionId);
+  }
+
+  updateLatencyMetrics(sessionId: string, latency: number): void {
+    const metrics = this.performanceMetrics.get(sessionId);
+    if (metrics) {
+      metrics.lastLatency = latency;
+      metrics.averageLatency = (metrics.averageLatency + latency) / 2;
     }
   }
 

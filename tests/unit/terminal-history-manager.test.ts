@@ -1,5 +1,5 @@
 import { terminalHistoryManager } from '../../src/lib/terminal-history-manager'
-import { CommandHistoryEntry } from '../../src/types/terminal-history'
+// CommandHistoryEntry import removed as not currently used
 
 describe('TerminalHistoryManager', () => {
   const sessionId = 'test-session-1'
@@ -142,19 +142,34 @@ describe('TerminalHistoryManager', () => {
       // Clear all history first
       terminalHistoryManager.clearHistory()
 
-      // Create fresh session
-      terminalHistoryManager.createSession(sessionId)
+      // Create fresh session and ensure it's properly set up
+      const session = terminalHistoryManager.createSession(sessionId)
       terminalHistoryManager.setCurrentSession(sessionId)
 
-      // Add some test commands
-      ['command1', 'command2', 'command3'].forEach(cmd => {
-        terminalHistoryManager.addCommand(cmd, sessionId)
-      })
+      // Verify session was created
+      expect(session).toBeDefined()
+      expect(session.sessionId).toBe(sessionId)
+
+      // Add some test commands one by one
+      const result1 = terminalHistoryManager.addCommand('command1', sessionId)
+      const result2 = terminalHistoryManager.addCommand('command2', sessionId)
+      const result3 = terminalHistoryManager.addCommand('command3', sessionId)
+
+      // Verify commands were added
+      expect(result1).toBeDefined()
+      expect(result2).toBeDefined()
+      expect(result3).toBeDefined()
+
+      // Verify history has the commands
+      const history = terminalHistoryManager.getSessionHistory(sessionId)
+      expect(Array.isArray(history)).toBe(true)
+      expect(history.length).toBe(3)
     })
 
     it('should navigate to previous command', () => {
       // Verify commands were added
       const history = terminalHistoryManager.getSessionHistory(sessionId)
+      expect(Array.isArray(history)).toBe(true)
       expect(history.length).toBeGreaterThan(0)
 
       const prev1 = terminalHistoryManager.navigateHistory('up', sessionId)

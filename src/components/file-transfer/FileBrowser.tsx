@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+// Badge import removed as not currently used
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Folder, 
@@ -13,12 +13,10 @@ import {
   Upload, 
   Download, 
   RefreshCw, 
-  Plus, 
-  Trash2, 
-  Edit, 
+  // Plus, Edit, MoreHorizontal - removed as not currently used
+  Trash2,
   ArrowUp,
-  FolderPlus,
-  MoreHorizontal
+  FolderPlus
 } from 'lucide-react';
 import { FileItem, DirectoryListing, FileTransferProgress } from '@/types/file-transfer';
 import { useTerminal } from '@/components/terminal/TerminalContext';
@@ -35,7 +33,7 @@ export function FileBrowser({ className }: FileBrowserProps) {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [transfers, setTransfers] = useState<FileTransferProgress[]>([]);
+  useState<FileTransferProgress[]>([]); // transfers state removed as not currently used
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolder, setShowNewFolder] = useState(false);
 

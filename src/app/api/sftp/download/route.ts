@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { buffer } = await sftpManager.downloadFile(sessionId, remotePath);
+    const buffer = await sftpManager.downloadFile(sessionId, remotePath);
     
     const fileName = remotePath.split('/').pop() || 'download';
     

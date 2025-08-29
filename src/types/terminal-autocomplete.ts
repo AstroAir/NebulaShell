@@ -3,7 +3,7 @@ export interface CompletionSuggestion {
   displayText?: string;
   description?: string;
   type: CompletionType;
-  priority: number;
+  priority: number | 'high' | 'medium' | 'low';
   insertText?: string;
   detail?: string;
 }
@@ -49,6 +49,9 @@ export interface AutoCompleteSettings {
   showTypes: boolean;
   cacheEnabled: boolean;
   cacheTimeout: number; // in milliseconds
+  // Enhanced auto-completion settings
+  enableFuzzySearch?: boolean;
+  showCategories?: boolean;
 }
 
 export interface CompletionCache {

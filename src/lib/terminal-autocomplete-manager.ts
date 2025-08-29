@@ -6,9 +6,8 @@ import {
   AutoCompleteSettings,
   CompletionCache,
   CompletionState,
-  CompletionType,
-  COMMON_COMMANDS,
-  CommandDefinition
+  // CompletionType, CommandDefinition - removed as not currently used
+  COMMON_COMMANDS
 } from '@/types/terminal-autocomplete';
 import { terminalHistoryManager } from './terminal-history-manager';
 import { logger } from './logger';
@@ -24,7 +23,10 @@ export class TerminalAutoCompleteManager extends EventEmitter {
     super();
     this.settings = this.getDefaultSettings();
     this.state = this.getDefaultState();
-    this.loadFromStorage();
+    // Only load from storage on the client side
+    if (typeof window !== 'undefined') {
+      this.loadFromStorage();
+    }
     this.initializeBuiltInProviders();
   }
 
@@ -42,6 +44,9 @@ export class TerminalAutoCompleteManager extends EventEmitter {
       showTypes: true,
       cacheEnabled: true,
       cacheTimeout: 300000, // 5 minutes
+      // Enhanced auto-completion settings
+      enableFuzzySearch: true,
+      showCategories: true,
     };
   }
 
@@ -157,7 +162,8 @@ export class TerminalAutoCompleteManager extends EventEmitter {
   // Context parsing
   private parseContext(input: string, cursorPosition: number): CompletionContext {
     const beforeCursor = input.substring(0, cursorPosition);
-    const afterCursor = input.substring(cursorPosition);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const afterCursor = input.substring(cursorPosition); // Currently unused but kept for future implementation
     
     // Simple tokenization (split by spaces, but respect quotes)
     const tokens = this.tokenize(beforeCursor);
@@ -412,7 +418,8 @@ export class TerminalAutoCompleteManager extends EventEmitter {
     return queryIndex === query.length;
   }
 
-  private filterSuggestions(suggestions: CompletionSuggestion[], context: CompletionContext): CompletionSuggestion[] {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private filterSuggestions(suggestions: CompletionSuggestion[], _context: CompletionContext): CompletionSuggestion[] {
     // Remove duplicates
     const seen = new Set<string>();
     return suggestions.filter(suggestion => {
@@ -425,9 +432,22 @@ export class TerminalAutoCompleteManager extends EventEmitter {
 
   private sortSuggestions(suggestions: CompletionSuggestion[]): CompletionSuggestion[] {
     return suggestions.sort((a, b) => {
+      // Convert priority to numeric value for comparison
+      const getPriorityValue = (priority: number | 'high' | 'medium' | 'low'): number => {
+        if (typeof priority === 'number') return priority;
+        switch (priority) {
+          case 'high': return 100;
+          case 'medium': return 50;
+          case 'low': return 10;
+          default: return 0;
+        }
+      };
+
       // Sort by priority first
-      if (a.priority !== b.priority) {
-        return b.priority - a.priority;
+      const aPriority = getPriorityValue(a.priority);
+      const bPriority = getPriorityValue(b.priority);
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority;
       }
       
       // Then by text length (shorter first)
@@ -471,24 +491,34 @@ export class TerminalAutoCompleteManager extends EventEmitter {
 
   // Storage
   private saveToStorage(): void {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.settings));
     } catch (error) {
-      logger.error('Failed to save autocomplete settings', { 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      logger.error('Failed to save autocomplete settings', {
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
   private loadFromStorage(): void {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const stored = localStorage.getItem(this.storageKey);
       if (stored) {
         this.settings = { ...this.getDefaultSettings(), ...JSON.parse(stored) };
       }
     } catch (error) {
-      logger.error('Failed to load autocomplete settings', { 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      logger.error('Failed to load autocomplete settings', {
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
