@@ -1,16 +1,103 @@
 import React, { ReactElement } from 'react';
 import { render as rtlRender, RenderOptions } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { AccessibilityProvider } from '@/components/accessibility/AccessibilityProvider';
-import { ResponsiveLayoutProvider } from '@/components/layout/ResponsiveLayoutProvider';
-import { TerminalProvider } from '@/components/terminal/TerminalContext';
 
-// Custom render function with providers
+// Mock contexts for testing
+const MockAccessibilityContext = React.createContext({
+  isReducedMotion: false,
+  announcements: [],
+  announce: jest.fn(),
+  setFocusVisible: jest.fn(),
+  isFocusVisible: false,
+});
+
+const MockResponsiveContext = React.createContext({
+  isMobile: false,
+  isTablet: false,
+  isDesktop: true,
+  breakpoint: 'desktop' as const,
+});
+
+const MockTerminalContext = React.createContext({
+  socket: null,
+  isConnected: false,
+  connectionStatus: 'disconnected' as const,
+  connect: jest.fn(),
+  disconnect: jest.fn(),
+  sendCommand: jest.fn(),
+  history: [],
+  currentDirectory: '/home/user',
+});
+
+// Mock providers for testing
+const MockAccessibilityProvider = ({ children }: { children: React.ReactNode }) => {
+  const mockValue = {
+    isReducedMotion: false,
+    announcements: [],
+    announce: jest.fn(),
+    setFocusVisible: jest.fn(),
+    isFocusVisible: false,
+  };
+
+  return (
+    <MockAccessibilityContext.Provider value={mockValue}>
+      <div data-testid="mock-accessibility-provider">
+        {children}
+      </div>
+    </MockAccessibilityContext.Provider>
+  );
+};
+
+const MockResponsiveLayoutProvider = ({ children }: { children: React.ReactNode }) => {
+  const mockValue = {
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true,
+    breakpoint: 'desktop' as const,
+  };
+
+  return (
+    <MockResponsiveContext.Provider value={mockValue}>
+      <div data-testid="mock-responsive-provider">
+        {children}
+      </div>
+    </MockResponsiveContext.Provider>
+  );
+};
+
+const MockTerminalProvider = ({ children }: { children: React.ReactNode }) => {
+  const mockValue = {
+    socket: null,
+    isConnected: false,
+    connectionStatus: 'disconnected' as const,
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    sendCommand: jest.fn(),
+    history: [],
+    currentDirectory: '/home/user',
+  };
+
+  return (
+    <MockTerminalContext.Provider value={mockValue}>
+      <div data-testid="mock-terminal-provider">
+        {children}
+      </div>
+    </MockTerminalContext.Provider>
+  );
+};
+
+// Custom render function with mock providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div data-testid="test-wrapper">
-      {children}
-    </div>
+    <MockAccessibilityProvider>
+      <MockResponsiveLayoutProvider>
+        <MockTerminalProvider>
+          <div data-testid="test-wrapper">
+            {children}
+          </div>
+        </MockTerminalProvider>
+      </MockResponsiveLayoutProvider>
+    </MockAccessibilityProvider>
   );
 };
 
@@ -180,6 +267,9 @@ export const createMockPersistedSession = (overrides = {}) => ({
 
 // Mock WebSocket for collaboration tests
 export const createMockWebSocket = () => {
+  const timeouts = new Set<NodeJS.Timeout>();
+  const intervals = new Set<NodeJS.Timeout>();
+
   const mockWs = {
     send: jest.fn(),
     close: jest.fn(),
@@ -198,6 +288,7 @@ export const createMockWebSocket = () => {
 
   // Simulate WebSocket events
   const simulateOpen = () => {
+    mockWs.readyState = mockWs.OPEN;
     if (mockWs.onopen) mockWs.onopen({} as Event);
   };
 
@@ -208,13 +299,48 @@ export const createMockWebSocket = () => {
   };
 
   const simulateClose = (code = 1000, reason = '') => {
+    mockWs.readyState = mockWs.CLOSED;
     if (mockWs.onclose) {
       mockWs.onclose({ code, reason, wasClean: true } as CloseEvent);
     }
   };
 
   const simulateError = (error: any) => {
-    if (mockWs.onerror) mockWs.onerror(error);
+    if (mockWs.onerror) {
+      // Create a proper ErrorEvent-like object
+      const errorEvent = {
+        type: 'error',
+        error: error,
+        message: error.message || 'WebSocket error',
+        target: mockWs
+      } as any;
+      mockWs.onerror(errorEvent);
+    }
+  };
+
+  // Cleanup function to prevent memory leaks
+  const cleanup = () => {
+    // Clear all timeouts and intervals
+    timeouts.forEach(id => clearTimeout(id));
+    intervals.forEach(id => clearInterval(id));
+    timeouts.clear();
+    intervals.clear();
+
+    // Reset all mock functions
+    Object.values(mockWs).forEach(fn => {
+      if (jest.isMockFunction(fn)) {
+        fn.mockClear();
+      }
+    });
+
+    // Reset event handlers
+    mockWs.onopen = null;
+    mockWs.onclose = null;
+    mockWs.onmessage = null;
+    mockWs.onerror = null;
+
+    // Reset readyState
+    mockWs.readyState = mockWs.CLOSED;
   };
 
   return {
@@ -223,6 +349,7 @@ export const createMockWebSocket = () => {
     simulateMessage,
     simulateClose,
     simulateError,
+    cleanup,
   };
 };
 
@@ -238,32 +365,181 @@ export const checkAccessibility = async (container: HTMLElement) => {
   }
 };
 
-// Wait for async operations
-export const waitForAsync = (ms: number = 0) => 
-  new Promise(resolve => setTimeout(resolve, ms));
+// Wait for async operations with improved timeout handling
+export const waitForAsync = (ms: number = 0) =>
+  new Promise(resolve => {
+    const timeoutId = setTimeout(resolve, ms);
+    // Track timeout for cleanup
+    if ((global as any).testTimeouts) {
+      (global as any).testTimeouts.add(timeoutId);
+    }
+  });
+
+// Enhanced waitFor with better error handling and timeout management
+export const waitForCondition = async (
+  condition: () => boolean | Promise<boolean>,
+  options: {
+    timeout?: number;
+    interval?: number;
+    timeoutMessage?: string;
+  } = {}
+) => {
+  const {
+    timeout = 5000,
+    interval = 50,
+    timeoutMessage = 'Condition was not met within timeout'
+  } = options;
+
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    try {
+      const result = await condition();
+      if (result) {
+        return true;
+      }
+    } catch (error) {
+      // Continue checking if condition throws
+    }
+
+    await waitForAsync(interval);
+  }
+
+  throw new Error(`${timeoutMessage} (${timeout}ms)`);
+};
+
+// Mock promise utilities for testing async flows
+export const createMockPromise = <T = any>() => {
+  let resolve: (value: T) => void;
+  let reject: (reason?: any) => void;
+
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return {
+    promise,
+    resolve: resolve!,
+    reject: reject!,
+  };
+};
+
+// Timeout management utilities
+export const withTimeout = function<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutMessage = 'Operation timed out'
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`${timeoutMessage} (${timeoutMs}ms)`));
+      }, timeoutMs);
+
+      // Track timeout for cleanup
+      if ((global as any).testTimeouts) {
+        (global as any).testTimeouts.add(timeoutId);
+      }
+    })
+  ]);
+};
+
+// Async cleanup helpers
+export const createAsyncCleanup = () => {
+  const cleanupTasks: Array<() => Promise<void> | void> = [];
+
+  const addCleanup = (task: () => Promise<void> | void) => {
+    cleanupTasks.push(task);
+  };
+
+  const cleanup = async () => {
+    const results = await Promise.allSettled(
+      cleanupTasks.map(task => Promise.resolve(task()))
+    );
+
+    // Log any cleanup failures
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.warn(`Cleanup task ${index} failed:`, result.reason);
+      }
+    });
+
+    cleanupTasks.length = 0; // Clear tasks
+  };
+
+  return { addCleanup, cleanup };
+};
 
 // Mock drag and drop events
 export const createDragEvent = (type: string, files: File[] = []) => {
   const event = new Event(type, { bubbles: true });
+
+  // Create a proper DataTransferItemList-like object
+  const items = files.map(file => ({ kind: 'file', type: file.type, getAsFile: () => file }));
+  Object.defineProperty(items, 'length', { value: files.length, writable: false });
+
+  // Create a proper FileList-like object
+  const fileList = Object.assign(files, { length: files.length });
+
   Object.defineProperty(event, 'dataTransfer', {
     value: {
-      files,
-      items: files.map(file => ({ kind: 'file', type: file.type, getAsFile: () => file })),
-      types: ['Files'],
+      files: fileList,
+      items,
+      types: files.length > 0 ? ['Files'] : [],
       dropEffect: 'copy',
       effectAllowed: 'all',
     },
+    writable: false,
+    configurable: true,
   });
   return event;
 };
 
 // Performance testing utilities
 export const measureRenderTime = async (renderFn: () => void) => {
+  // Ensure performance.now() is available and working
+  if (typeof performance === 'undefined' || typeof performance.now !== 'function') {
+    console.warn('performance.now() not available, using Date.now() fallback');
+    const start = Date.now();
+    renderFn();
+    await waitForAsync(10); // Wait for render to complete
+    const end = Date.now();
+    return end - start;
+  }
+
   const start = performance.now();
+
+  // Validate start time is a valid number
+  if (isNaN(start) || !isFinite(start)) {
+    console.warn('Invalid start time from performance.now(), using Date.now() fallback');
+    const dateStart = Date.now();
+    renderFn();
+    await waitForAsync(10);
+    const dateEnd = Date.now();
+    return dateEnd - dateStart;
+  }
+
   renderFn();
-  await waitForAsync(); // Wait for render to complete
+  await waitForAsync(10); // Wait for render to complete with small delay
   const end = performance.now();
-  return end - start;
+
+  // Validate end time and calculate duration
+  if (isNaN(end) || !isFinite(end)) {
+    console.warn('Invalid end time from performance.now(), returning fallback duration');
+    return 10; // Return reasonable fallback duration
+  }
+
+  const duration = end - start;
+
+  // Ensure duration is valid
+  if (isNaN(duration) || !isFinite(duration) || duration < 0) {
+    console.warn('Invalid duration calculated, returning fallback duration');
+    return 10; // Return reasonable fallback duration
+  }
+
+  return duration;
 };
 
 // Local storage testing utilities

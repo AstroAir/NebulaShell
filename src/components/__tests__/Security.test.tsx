@@ -4,8 +4,11 @@ import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import { Terminal } from '../terminal/Terminal'
 import { SSHConnectionForm } from '../ssh/SSHConnectionForm'
+import { MockSocket } from '../../../__tests__/mocks/socket.io'
+
+// Unmock the TerminalContext for this test to use the real implementation
+jest.unmock('@/components/terminal/TerminalContext')
 import { TerminalProvider } from '../terminal/TerminalContext'
-import { MockSocket } from '../../../tests/mocks/socket.io'
 
 // Mock socket.io-client
 jest.mock('socket.io-client', () => ({
@@ -485,12 +488,12 @@ describe('Security Tests', () => {
       })
 
       await waitFor(() => {
-        const errorMessage = screen.getByText(/connection failed/i)
-        expect(errorMessage).toBeInTheDocument()
-        
+        const errorMessages = screen.getAllByText(/connection failed/i)
+        expect(errorMessages.length).toBeGreaterThan(0)
+
         // Note: Current implementation does expose server details - this could be improved for security
-        expect(screen.queryByText(/etc\/ssh\/sshd_config/)).toBeInTheDocument()
-        expect(screen.queryByText(/192\.168\.1\.100/)).toBeInTheDocument()
+        expect(screen.queryAllByText(/etc\/ssh\/sshd_config/).length).toBeGreaterThan(0)
+        expect(screen.queryAllByText(/192\.168\.1\.100/).length).toBeGreaterThan(0)
       })
     })
 
@@ -512,8 +515,9 @@ describe('Security Tests', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText(/authentication failed/i)).toBeInTheDocument()
-        
+        const errorMessages = screen.getAllByText(/authentication failed/i)
+        expect(errorMessages.length).toBeGreaterThan(0)
+
         // Script should not be executed
         expect(document.querySelector('script')).toBeNull()
       })

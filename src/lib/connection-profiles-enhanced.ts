@@ -13,6 +13,7 @@ export interface ConnectionProfile {
   passphrase?: string;
   // Note: passwords should not be stored for security
   savePassword?: boolean;
+  groupId?: string; // Optional group assignment
   connectionOptions: {
     keepAlive?: boolean;
     keepAliveInterval?: number;
@@ -234,22 +235,30 @@ export class EnhancedConnectionProfileManager {
 
   addProfileToGroup(groupId: string, profileId: string): boolean {
     const group = this.groups.get(groupId);
-    if (!group || !this.profiles.has(profileId)) return false;
+    const profile = this.profiles.get(profileId);
+    if (!group || !profile) return false;
 
     if (!group.profiles.includes(profileId)) {
       group.profiles.push(profileId);
+      profile.groupId = groupId;
       this.saveGroups();
+      this.saveProfiles();
     }
     return true;
   }
 
   removeProfileFromGroup(groupId: string, profileId: string): boolean {
     const group = this.groups.get(groupId);
+    const profile = this.profiles.get(profileId);
     if (!group) return false;
 
     const index = group.profiles.indexOf(profileId);
     if (index > -1) {
       group.profiles.splice(index, 1);
+      if (profile) {
+        profile.groupId = undefined;
+        this.saveProfiles();
+      }
       this.saveGroups();
       return true;
     }
@@ -273,9 +282,20 @@ export class EnhancedConnectionProfileManager {
     const groupedProfileIds = new Set(
       Array.from(this.groups.values()).flatMap(group => group.profiles)
     );
-    
+
     return Array.from(this.profiles.values())
       .filter(profile => !groupedProfileIds.has(profile.id));
+  }
+
+  // Alias method for test compatibility
+  assignToGroup(profileId: string, groupId: string): boolean {
+    return this.addProfileToGroup(groupId, profileId);
+  }
+
+  // Get profiles by authentication method
+  getProfilesByAuthMethod(authMethod: 'password' | 'key' | 'agent'): ConnectionProfile[] {
+    return Array.from(this.profiles.values())
+      .filter(profile => profile.authMethod === authMethod);
   }
 
   // Template management
@@ -285,18 +305,31 @@ export class EnhancedConnectionProfileManager {
 
     // Apply variables to template
     const profileData = this.applyTemplateVariables(template.template, variables);
-    
+
     return this.createProfile(profileData as Omit<ConnectionProfile, 'id' | 'metadata'>);
+  }
+
+  // Alias for backward compatibility
+  createFromTemplate(templateId: string, variables: Record<string, any>): string | null {
+    return this.createProfileFromTemplate(templateId, variables);
   }
 
   private applyTemplateVariables(template: Partial<ConnectionProfile>, variables: Record<string, any>): Partial<ConnectionProfile> {
     const result = JSON.parse(JSON.stringify(template));
-    
-    // Simple variable substitution
+
+    // Enhanced variable substitution with type handling
     const substitute = (obj: any): any => {
       if (typeof obj === 'string') {
+        // Handle full string replacement (e.g., port: "{{port}}" -> port: 2222)
+        const fullMatch = obj.match(/^\{\{(\w+)\}\}$/);
+        if (fullMatch) {
+          const varName = fullMatch[1];
+          return variables.hasOwnProperty(varName) ? variables[varName] : obj;
+        }
+
+        // Handle partial string replacement (e.g., "{{name}} Server" -> "My Server")
         return obj.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
-          return variables[varName] || match;
+          return variables.hasOwnProperty(varName) ? String(variables[varName]) : match;
         });
       } else if (Array.isArray(obj)) {
         return obj.map(substitute);
@@ -310,7 +343,17 @@ export class EnhancedConnectionProfileManager {
       return obj;
     };
 
-    return substitute(result);
+    // Apply direct variable assignments for top-level properties
+    const substituted = substitute(result);
+
+    // Override with direct variable assignments if they exist
+    Object.keys(variables).forEach(key => {
+      if (substituted.hasOwnProperty(key)) {
+        substituted[key] = variables[key];
+      }
+    });
+
+    return substituted;
   }
 
   getAllTemplates(): ConnectionTemplate[] {
@@ -325,6 +368,7 @@ export class EnhancedConnectionProfileManager {
   // Import/Export
   exportProfiles(): string {
     return JSON.stringify({
+      version: '1.0',
       profiles: Array.from(this.profiles.values()),
       groups: Array.from(this.groups.values()),
       recentConnections: this.recentConnections,
@@ -400,71 +444,211 @@ export class EnhancedConnectionProfileManager {
 
   // Private methods
   private generateId(): string {
-    return `profile-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `profile-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
   private loadProfiles() {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const saved = localStorage.getItem('connection-profiles-enhanced');
       if (saved) {
         const profiles = JSON.parse(saved);
-        profiles.forEach((profile: ConnectionProfile) => {
-          this.profiles.set(profile.id, profile);
-        });
+
+        // Validate data structure
+        if (Array.isArray(profiles)) {
+          profiles.forEach((profile: any) => {
+            if (this.isValidProfile(profile)) {
+              this.profiles.set(profile.id, profile);
+            } else {
+              console.warn('Invalid profile data found, skipping:', profile);
+            }
+          });
+        } else {
+          console.warn('Invalid profiles data structure, expected array');
+        }
       }
     } catch (error) {
-      console.warn('Failed to load connection profiles:', error);
+      console.error('Failed to load connection profiles:', error);
+      // Clear corrupted data
+      try {
+        localStorage.removeItem('connection-profiles-enhanced');
+      } catch (clearError) {
+        console.error('Failed to clear corrupted profile data:', clearError);
+      }
     }
   }
 
   private saveProfiles() {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const profiles = Array.from(this.profiles.values());
       localStorage.setItem('connection-profiles-enhanced', JSON.stringify(profiles));
     } catch (error) {
-      console.warn('Failed to save connection profiles:', error);
+      console.error('Failed to save connection profiles:', error);
+      // Attempt to free up space by removing old data
+      try {
+        localStorage.removeItem('connection-profiles-enhanced-backup');
+      } catch (cleanupError) {
+        console.error('Failed to cleanup storage:', cleanupError);
+      }
     }
   }
 
+  private isValidProfile(profile: any): profile is ConnectionProfile {
+    return (
+      profile &&
+      typeof profile === 'object' &&
+      typeof profile.id === 'string' &&
+      typeof profile.name === 'string' &&
+      typeof profile.hostname === 'string' &&
+      typeof profile.port === 'number' &&
+      typeof profile.username === 'string' &&
+      ['password', 'key', 'agent'].includes(profile.authMethod) &&
+      profile.metadata &&
+      typeof profile.metadata === 'object' &&
+      typeof profile.metadata.createdAt === 'number'
+    );
+  }
+
+  private isValidGroup(group: any): group is ConnectionGroup {
+    return (
+      group &&
+      typeof group === 'object' &&
+      typeof group.id === 'string' &&
+      typeof group.name === 'string' &&
+      typeof group.color === 'string' &&
+      Array.isArray(group.profiles)
+    );
+  }
+
   private loadGroups() {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const saved = localStorage.getItem('connection-groups');
       if (saved) {
         const groups = JSON.parse(saved);
-        groups.forEach((group: ConnectionGroup) => {
-          this.groups.set(group.id, group);
-        });
+
+        // Validate data structure
+        if (Array.isArray(groups)) {
+          groups.forEach((group: any) => {
+            if (this.isValidGroup(group)) {
+              this.groups.set(group.id, group);
+            } else {
+              console.warn('Invalid group data found, skipping:', group);
+            }
+          });
+        } else {
+          console.warn('Invalid groups data structure, expected array');
+        }
       }
     } catch (error) {
-      console.warn('Failed to load connection groups:', error);
+      console.error('Failed to load connection groups:', error);
+      // Clear corrupted data
+      try {
+        localStorage.removeItem('connection-groups');
+      } catch (clearError) {
+        console.error('Failed to clear corrupted group data:', clearError);
+      }
+    }
+  }
+
+  private loadTemplates() {
+    try {
+      const saved = localStorage.getItem('connection-templates');
+      if (saved) {
+        const templates = JSON.parse(saved);
+        if (Array.isArray(templates)) {
+          templates.forEach((template: ConnectionTemplate) => {
+            this.templates.set(template.id, template);
+          });
+        } else {
+          console.warn('Invalid templates data structure, expected array');
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load connection templates:', error);
     }
   }
 
   private saveGroups() {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const groups = Array.from(this.groups.values());
       localStorage.setItem('connection-groups', JSON.stringify(groups));
     } catch (error) {
-      console.warn('Failed to save connection groups:', error);
+      console.error('Failed to save connection groups:', error);
+      // Attempt to free up space by removing old data
+      try {
+        localStorage.removeItem('connection-groups-backup');
+      } catch (cleanupError) {
+        console.error('Failed to cleanup group storage:', cleanupError);
+      }
     }
   }
 
   private loadRecentConnections() {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       const saved = localStorage.getItem('recent-connections');
       if (saved) {
-        this.recentConnections = JSON.parse(saved);
+        const connections = JSON.parse(saved);
+
+        // Validate data structure
+        if (Array.isArray(connections) && connections.every(id => typeof id === 'string')) {
+          this.recentConnections = connections;
+        } else {
+          console.warn('Invalid recent connections data structure, expected array of strings');
+          this.recentConnections = [];
+        }
       }
     } catch (error) {
-      console.warn('Failed to load recent connections:', error);
+      console.error('Failed to load recent connections:', error);
+      this.recentConnections = [];
+      // Clear corrupted data
+      try {
+        localStorage.removeItem('recent-connections');
+      } catch (clearError) {
+        console.error('Failed to clear corrupted recent connections data:', clearError);
+      }
     }
   }
 
   private saveRecentConnections() {
+    // Guard against SSR
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
     try {
       localStorage.setItem('recent-connections', JSON.stringify(this.recentConnections));
     } catch (error) {
-      console.warn('Failed to save recent connections:', error);
+      console.error('Failed to save recent connections:', error);
+      // Attempt to free up space by removing old data
+      try {
+        localStorage.removeItem('recent-connections-backup');
+      } catch (cleanupError) {
+        console.error('Failed to cleanup recent connections storage:', cleanupError);
+      }
     }
   }
 
@@ -474,7 +658,7 @@ export class EnhancedConnectionProfileManager {
         id: 'aws-ec2',
         name: 'AWS EC2 Instance',
         description: 'Connect to an AWS EC2 instance',
-        category: 'Cloud',
+        category: 'cloud',
         template: {
           name: '{{instanceName}} ({{region}})',
           hostname: '{{hostname}}',
@@ -511,17 +695,43 @@ export class EnhancedConnectionProfileManager {
         id: 'docker-container',
         name: 'Docker Container',
         description: 'Connect to a Docker container via SSH',
-        category: 'Containers',
+        category: 'containers',
         template: {
           name: 'Docker: {{containerName}}',
           hostname: 'localhost',
-          port: '{{port}}',
+          port: 2222, // Will be replaced by template variable
           username: 'root',
           authMethod: 'password',
+          connectionOptions: {
+            keepAlive: true,
+            timeout: 10000,
+          },
         },
         variables: [
           { name: 'containerName', label: 'Container Name', type: 'text', required: true },
           { name: 'port', label: 'SSH Port', type: 'number', required: true, default: 2222 },
+        ],
+      },
+      {
+        id: 'dev-server',
+        name: 'Development Server',
+        description: 'Connect to a development server',
+        category: 'development',
+        template: {
+          name: 'Dev: {{serverName}}',
+          hostname: '{{hostname}}',
+          port: 22,
+          username: '{{username}}',
+          authMethod: 'password',
+          connectionOptions: {
+            keepAlive: true,
+            timeout: 10000,
+          },
+        },
+        variables: [
+          { name: 'serverName', label: 'Server Name', type: 'text', required: true },
+          { name: 'hostname', label: 'Hostname or IP', type: 'text', required: true },
+          { name: 'username', label: 'Username', type: 'text', required: true, default: 'developer' },
         ],
       },
     ];

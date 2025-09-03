@@ -531,12 +531,19 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
     if (!terminalRef.current || isInitialized || !isClient) return;
 
     let cleanup: (() => void) | undefined;
+    let isMounted = true;
 
     const initializeTerminal = async () => {
-      // Dynamic imports to avoid SSR issues
-      const { Terminal: XTerm } = await import('@xterm/xterm');
-      const { FitAddon } = await import('@xterm/addon-fit');
-      const { WebLinksAddon } = await import('@xterm/addon-web-links');
+      try {
+        // Dynamic imports to avoid SSR issues
+        const { Terminal: XTerm } = await import('@xterm/xterm');
+        const { FitAddon } = await import('@xterm/addon-fit');
+        const { WebLinksAddon } = await import('@xterm/addon-web-links');
+
+        // Check if component is still mounted
+        if (!isMounted || !terminalRef.current) {
+          return;
+        }
 
       // CSS is imported in globals.css
 
@@ -770,21 +777,32 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
       }
 
       cleanup = () => {
-        window.removeEventListener('resize', handleResize);
-        if (virtualKeyboardCleanup) {
-          virtualKeyboardCleanup();
+        try {
+          window.removeEventListener('resize', handleResize);
+          if (virtualKeyboardCleanup) {
+            virtualKeyboardCleanup();
+          }
+          // Clean up touch gestures
+          if (terminalRef.current && (terminalRef.current as any)._gestureCleanup) {
+            (terminalRef.current as any)._gestureCleanup();
+          }
+          if (xterm && typeof xterm.dispose === 'function') {
+            xterm.dispose();
+          }
+        } catch (error) {
+          console.warn('Terminal cleanup error:', error);
         }
-        // Clean up touch gestures
-        if (terminalRef.current && (terminalRef.current as any)._gestureCleanup) {
-          (terminalRef.current as any)._gestureCleanup();
-        }
-        xterm.dispose();
       };
+    } catch (error) {
+      console.error('Terminal initialization failed:', error);
+      setIsInitialized(false);
+    }
     };
 
     initializeTerminal();
 
     return () => {
+      isMounted = false;
       if (cleanup) {
         cleanup();
       }
@@ -848,7 +866,9 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
     }
 
     return () => {
-      resizeObserver.disconnect();
+      if (resizeObserver && typeof resizeObserver.disconnect === 'function') {
+        resizeObserver.disconnect();
+      }
     };
   }, []);
 

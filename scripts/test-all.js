@@ -69,7 +69,7 @@ async function checkDependencies() {
   if (missingDeps.length > 0) {
     log(`Missing dependencies: ${missingDeps.join(', ')}`, 'red');
     log('Installing missing dependencies...', 'yellow');
-    await runCommand('npm', ['install', '--save-dev', ...missingDeps]);
+    await runCommand('pnpm', ['install', '--save-dev', ...missingDeps]);
   }
 
   log('Dependencies check completed', 'green');
@@ -79,7 +79,7 @@ async function runUnitTests() {
   log('\n=== Running Unit Tests ===', 'bright');
   
   try {
-    await runCommand('npm', ['run', 'test:unit']);
+    await runCommand('pnpm', ['run', 'test:unit']);
     log('✅ Unit tests passed', 'green');
     return true;
   } catch (error) {
@@ -93,7 +93,7 @@ async function runIntegrationTests() {
   log('\n=== Running Integration Tests ===', 'bright');
   
   try {
-    await runCommand('npm', ['run', 'test:integration']);
+    await runCommand('pnpm', ['run', 'test:integration']);
     log('✅ Integration tests passed', 'green');
     return true;
   } catch (error) {
@@ -108,10 +108,10 @@ async function runE2ETests() {
   
   try {
     // Install Playwright browsers if needed
-    await runCommand('npx', ['playwright', 'install']);
+    await runCommand('pnpm', ['playwright', 'install']);
     
     // Run E2E tests
-    await runCommand('npm', ['run', 'test:e2e']);
+    await runCommand('pnpm', ['run', 'test:e2e']);
     log('✅ E2E tests passed', 'green');
     return true;
   } catch (error) {
@@ -125,7 +125,7 @@ async function generateCoverageReport() {
   log('\n=== Generating Coverage Report ===', 'bright');
   
   try {
-    await runCommand('npm', ['run', 'test:coverage']);
+    await runCommand('pnpm', ['run', 'test:coverage']);
     log('✅ Coverage report generated', 'green');
     
     // Check coverage thresholds
@@ -168,7 +168,7 @@ async function runAccessibilityTests() {
   log('\n=== Running Accessibility Tests ===', 'bright');
   
   try {
-    await runCommand('npm', ['run', 'test:a11y']);
+    await runCommand('pnpm', ['run', 'test:a11y']);
     log('✅ Accessibility tests passed', 'green');
     return true;
   } catch (error) {
@@ -182,7 +182,7 @@ async function runPerformanceTests() {
   log('\n=== Running Performance Tests ===', 'bright');
   
   try {
-    await runCommand('npm', ['run', 'test:performance']);
+    await runCommand('pnpm', ['run', 'test:performance']);
     log('✅ Performance tests passed', 'green');
     return true;
   } catch (error) {

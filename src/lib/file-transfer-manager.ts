@@ -269,7 +269,7 @@ export class FileTransferManager {
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No response body');
 
-      const chunks: Uint8Array[] = [];
+      const chunks: BlobPart[] = [];
       let receivedLength = 0;
       const startTime = Date.now();
 

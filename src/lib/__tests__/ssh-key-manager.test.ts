@@ -1,34 +1,19 @@
-import { SSHKeyManager } from '../ssh-key-manager'
-import { KeyGenerationOptions } from '@/types/ssh-keys'
-import { logger } from '../logger'
-
-// Mock dependencies
-jest.mock('../logger', () => ({
-  logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-  },
-}))
-
-// Mock node-forge with proper structure
+// Mock node-forge first
+const mockPrivateKey = { type: 'rsa', bits: 2048 };
+const mockPublicKey = { type: 'rsa', bits: 2048 };
 const mockKeyPair = {
-  privateKey: {
-    privateKeyToPem: jest.fn(() => '-----BEGIN RSA PRIVATE KEY-----\nMOCK_PRIVATE_KEY\n-----END RSA PRIVATE KEY-----'),
-  },
-  publicKey: {
-    publicKeyToPem: jest.fn(() => '-----BEGIN PUBLIC KEY-----\nMOCK_PUBLIC_KEY\n-----END PUBLIC KEY-----'),
-  },
-}
+  privateKey: mockPrivateKey,
+  publicKey: mockPublicKey,
+};
 
 jest.mock('node-forge', () => ({
   pki: {
     rsa: {
-      generateKeyPair: jest.fn(() => mockKeyPair),
+      generateKeyPair: jest.fn((options) => mockKeyPair),
     },
     privateKeyToPem: jest.fn(() => '-----BEGIN RSA PRIVATE KEY-----\nMOCK_PRIVATE_KEY\n-----END RSA PRIVATE KEY-----'),
     publicKeyToPem: jest.fn(() => '-----BEGIN PUBLIC KEY-----\nMOCK_PUBLIC_KEY\n-----END PUBLIC KEY-----'),
-    encryptRsaPrivateKey: jest.fn(() => '-----BEGIN ENCRYPTED PRIVATE KEY-----\nMOCK_ENCRYPTED_KEY\n-----END ENCRYPTED PRIVATE KEY-----'),
+    encryptRsaPrivateKey: jest.fn(() => '-----BEGIN ENCRYPTED PRIVATE KEY-----\nMOCK_ENCRYPTED_PRIVATE_KEY\n-----END ENCRYPTED PRIVATE KEY-----'),
     privateKeyFromPem: jest.fn(() => mockKeyPair.privateKey),
     publicKeyFromPem: jest.fn(() => mockKeyPair.publicKey),
   },
@@ -39,14 +24,23 @@ jest.mock('node-forge', () => ({
   md: {
     sha256: {
       create: jest.fn(() => ({
-        update: jest.fn(),
+        update: jest.fn().mockReturnThis(),
         digest: jest.fn(() => ({
           toHex: jest.fn(() => 'mock-fingerprint-hash'),
         })),
       })),
     },
   },
-}))
+}));
+
+// Mock dependencies
+jest.mock('../logger', () => ({
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+  },
+}));
 
 jest.mock('crypto-js', () => ({
   AES: {
@@ -72,12 +66,38 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 })
 
+import { SSHKeyManager } from '../ssh-key-manager'
+import { KeyGenerationOptions } from '@/types/ssh-keys'
+import { logger } from '../logger'
+
 describe('SSHKeyManager', () => {
   let manager: SSHKeyManager
 
   beforeEach(() => {
     jest.clearAllMocks()
     localStorageMock.getItem.mockReturnValue(null)
+
+    // Reset the forge mock to ensure it returns the correct keypair
+    const forge = require('node-forge')
+    forge.pki.rsa.generateKeyPair.mockReturnValue(mockKeyPair)
+
+    // Reset the md mock
+    forge.md.sha256.create.mockReturnValue({
+      update: jest.fn().mockReturnThis(),
+      digest: jest.fn(() => ({
+        toHex: jest.fn(() => 'mock-fingerprint-hash'),
+      })),
+    })
+
+    // Reset the ssh mock
+    forge.ssh.publicKeyToOpenSSH.mockReturnValue('ssh-rsa MOCK_OPENSSH_PUBLIC_KEY user@host')
+
+    // Reset the pki mocks
+    forge.pki.publicKeyFromPem.mockReturnValue(mockKeyPair.publicKey)
+    forge.pki.publicKeyToPem.mockReturnValue('-----BEGIN PUBLIC KEY-----\nMOCK_PUBLIC_KEY\n-----END PUBLIC KEY-----')
+    forge.pki.privateKeyToPem.mockReturnValue('-----BEGIN RSA PRIVATE KEY-----\nMOCK_PRIVATE_KEY\n-----END RSA PRIVATE KEY-----')
+    forge.pki.encryptRsaPrivateKey.mockReturnValue('-----BEGIN ENCRYPTED PRIVATE KEY-----\nMOCK_ENCRYPTED_PRIVATE_KEY\n-----END ENCRYPTED PRIVATE KEY-----')
+
     manager = new SSHKeyManager()
   })
 

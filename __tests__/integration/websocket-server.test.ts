@@ -1,14 +1,14 @@
 import { createServer } from 'http'
 import { io as Client, Socket as ClientSocket } from 'socket.io-client'
-import { sshManager } from '../../src/lib/ssh-manager'
-import { SSHConnectionConfig } from '../../src/types/ssh'
-import { WebSocketServer } from '../../src/lib/websocket-server'
+import { sshManager } from '@/lib/ssh-manager'
+import { SSHConnectionConfig } from '@/types/ssh'
+import { WebSocketServer } from '@/lib/websocket-server'
 
 // Mock SSH manager
-jest.mock('../../src/lib/ssh-manager')
+jest.mock('@/lib/ssh-manager')
 
 // Mock WebSocketServer to avoid Socket.IO compatibility issues
-jest.mock('../../src/lib/websocket-server', () => ({
+jest.mock('@/lib/websocket-server', () => ({
   WebSocketServer: jest.fn().mockImplementation(() => ({
     setupEventHandlers: jest.fn(),
     handleConnection: jest.fn(),

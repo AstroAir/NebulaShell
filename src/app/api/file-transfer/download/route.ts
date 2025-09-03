@@ -83,7 +83,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log(`File downloaded: ${remotePath} (${fileStats.size} bytes)`);
 
     // Return file with appropriate headers
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': contentType,

@@ -1,3 +1,4 @@
+/// <reference path="../types/jest-axe.d.ts" />
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { axe, toHaveNoViolations } from 'jest-axe';
@@ -11,6 +12,9 @@ import { createMockTerminalTheme, createMockHistoryEntry, createMockCollaboratio
 // Extend Jest matchers
 expect.extend(toHaveNoViolations);
 
+// Type assertion helper for jest-axe matcher
+const expectAxe = (results: any) => expect(results) as any;
+
 describe('Accessibility Tests', () => {
   describe('Terminal Theme Selector', () => {
     it('should not have accessibility violations', async () => {
@@ -22,7 +26,7 @@ describe('Accessibility Tests', () => {
       );
       
       const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      expectAxe(results).toHaveNoViolations();
     });
 
     it('should have proper ARIA labels for theme cards', () => {
@@ -79,7 +83,7 @@ describe('Accessibility Tests', () => {
       );
       
       const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      expectAxe(results).toHaveNoViolations();
     });
 
     it('should have proper search input labeling', () => {
@@ -122,7 +126,7 @@ describe('Accessibility Tests', () => {
       );
       
       const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      expectAxe(results).toHaveNoViolations();
     });
 
     it('should have proper drop zone accessibility', () => {
@@ -222,7 +226,7 @@ describe('Accessibility Tests', () => {
       );
       
       const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      expectAxe(results).toHaveNoViolations();
     });
 
     it('should have proper user list accessibility', () => {
@@ -298,7 +302,7 @@ describe('Accessibility Tests', () => {
       );
       
       const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      expectAxe(results).toHaveNoViolations();
     });
 
     it('should have proper search functionality accessibility', () => {
@@ -359,8 +363,8 @@ describe('Accessibility Tests', () => {
           'color-contrast': { enabled: true },
         },
       });
-      
-      expect(results).toHaveNoViolations();
+
+      expectAxe(results).toHaveNoViolations();
     });
   });
 
@@ -463,7 +467,7 @@ describe('Accessibility Tests', () => {
       );
       
       const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      expectAxe(results).toHaveNoViolations();
     });
   });
 });

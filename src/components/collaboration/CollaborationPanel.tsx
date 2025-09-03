@@ -36,23 +36,55 @@ import { useAccessibility } from '@/components/accessibility/AccessibilityProvid
 interface CollaborationPanelProps {
   sessionId?: string;
   currentUser?: Omit<CollaborationUser, 'isActive' | 'lastSeen'>;
+  connectedUsers?: CollaborationUser[];
+  connectionStatus?: string;
+  connectionError?: string;
   onSessionCreate?: (sessionName: string) => void;
   onSessionJoin?: (sessionId: string) => void;
   onSessionLeave?: () => void;
+  onSessionShare?: (sessionId: string) => void;
+  onSessionEnd?: () => void;
+  onUserJoin?: (user: CollaborationUser) => void;
+  onUserLeave?: (userId: string) => void;
   className?: string;
 }
 
 export function CollaborationPanel({
   sessionId,
   currentUser,
+  connectedUsers: initialConnectedUsers,
+  connectionStatus,
+  connectionError,
   onSessionCreate,
   onSessionJoin,
   onSessionLeave,
+  onSessionShare,
+  onSessionEnd,
+  onUserJoin,
+  onUserLeave,
   className
 }: CollaborationPanelProps) {
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectedUsers, setConnectedUsers] = useState<CollaborationUser[]>([]);
-  const [currentSession, setCurrentSession] = useState<CollaborationSession | null>(null);
+  const [isConnected, setIsConnected] = useState(!!sessionId || connectionStatus === 'connected');
+  const [connectedUsers, setConnectedUsers] = useState<CollaborationUser[]>(initialConnectedUsers || []);
+  const [currentSession, setCurrentSession] = useState<CollaborationSession | null>(
+    sessionId ? {
+      id: sessionId,
+      name: 'Current Session',
+      ownerId: currentUser?.id || 'current-user',
+      users: new Map(),
+      isActive: true,
+      createdAt: Date.now(),
+      lastActivity: Date.now(),
+      settings: {
+        maxUsers: 10,
+        allowGuestUsers: true,
+        requirePermission: false,
+        shareTerminalInput: true,
+        shareTerminalOutput: true,
+        shareCursor: true,
+      }
+    } : null
+  );
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [newSessionName, setNewSessionName] = useState('');
@@ -66,6 +98,41 @@ export function CollaborationPanel({
     maxUsers: 10,
   });
   const { announce } = useAccessibility();
+
+  // Sync prop changes with state
+  useEffect(() => {
+    if (initialConnectedUsers) {
+      setConnectedUsers(initialConnectedUsers);
+    }
+  }, [initialConnectedUsers]);
+
+  useEffect(() => {
+    setIsConnected(!!sessionId || connectionStatus === 'connected');
+  }, [sessionId, connectionStatus]);
+
+  useEffect(() => {
+    if (sessionId) {
+      setCurrentSession({
+        id: sessionId,
+        name: 'Current Session',
+        ownerId: currentUser?.id || 'current-user',
+        users: new Map(),
+        isActive: true,
+        createdAt: Date.now(),
+        lastActivity: Date.now(),
+        settings: {
+          maxUsers: 10,
+          allowGuestUsers: true,
+          requirePermission: false,
+          shareTerminalInput: true,
+          shareTerminalOutput: true,
+          shareCursor: true,
+        }
+      });
+    } else {
+      setCurrentSession(null);
+    }
+  }, [sessionId, currentUser]);
 
   useEffect(() => {
     // Set up collaboration manager event listeners
@@ -177,10 +244,19 @@ export function CollaborationPanel({
     if (!user.isActive) return 'bg-gray-400';
     const now = Date.now();
     const timeSinceLastSeen = now - user.lastSeen;
-    
+
     if (timeSinceLastSeen < 30000) return 'bg-green-500'; // Active (last 30s)
     if (timeSinceLastSeen < 300000) return 'bg-yellow-500'; // Away (last 5m)
     return 'bg-red-500'; // Inactive
+  };
+
+  const formatDuration = (ms: number): string => {
+    const minutes = Math.floor(ms / 60000);
+    const hours = Math.floor(minutes / 60);
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    }
+    return `${minutes}m`;
   };
 
   return (
@@ -297,6 +373,107 @@ export function CollaborationPanel({
       </CardHeader>
       
       <CardContent className="space-y-4">
+        {/* Connection Error State */}
+        {connectionStatus === 'error' && connectionError && (
+          <Alert variant="destructive">
+            <AlertDescription className="flex items-center justify-between">
+              <div>
+                <strong>Connection Error</strong>
+                <p className="text-sm mt-1">{connectionError}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Session Information */}
+        {sessionId && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Session ID:</span>
+                  <code className="text-sm bg-background px-2 py-1 rounded">{sessionId}</code>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm text-muted-foreground">Connected Users ({connectedUsers.length})</span>
+                  <div className="flex items-center gap-1">
+                    <div className={cn(
+                      "w-2 h-2 rounded-full",
+                      connectionStatus === 'connected' ? "bg-green-500" :
+                      connectionStatus === 'reconnecting' ? "bg-yellow-500" : "bg-red-500"
+                    )} />
+                    <span className="text-xs text-muted-foreground">
+                      {connectionStatus === 'connected' ? 'Connected' :
+                       connectionStatus === 'reconnecting' ? 'Reconnecting...' : 'Disconnected'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onSessionShare?.(sessionId)}
+                  className="flex items-center gap-2"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share Session
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => onSessionEnd?.()}
+                  className="flex items-center gap-2"
+                >
+                  <UserMinus className="h-4 w-4" />
+                  End Session
+                </Button>
+              </div>
+            </div>
+
+            {/* Session Statistics */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="text-sm font-medium">Session Duration:</div>
+                <div className="text-xs text-muted-foreground">
+                  {currentSession ? formatDuration(Date.now() - currentSession.createdAt) : '0m'}
+                </div>
+              </div>
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="text-sm font-medium">Commands Executed:</div>
+                <div className="text-xs text-muted-foreground">0</div>
+              </div>
+            </div>
+
+            {/* Permissions Section */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Permissions</h4>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="allow-input" defaultChecked />
+                  <label htmlFor="allow-input" className="text-sm">Allow Input</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="view-only" />
+                  <label htmlFor="view-only" className="text-sm">View Only</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* No Session State */}
+        {!sessionId && (
+          <div className="text-center py-8 text-muted-foreground">
+            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No active session</p>
+            <p className="text-sm">Create or join a session to start collaborating</p>
+          </div>
+        )}
+
         {isConnected && currentSession ? (
           <Tabs defaultValue="users" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
@@ -308,7 +485,14 @@ export function CollaborationPanel({
             <TabsContent value="users" className="mt-4">
               <ScrollArea className="h-64">
                 <div className="space-y-2">
-                  {connectedUsers.map((user) => (
+                  {connectedUsers.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No users connected</p>
+                      <p className="text-sm">Share the session link to invite others</p>
+                    </div>
+                  ) : (
+                    connectedUsers.map((user) => (
                     <Card key={user.id} className="p-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -357,7 +541,8 @@ export function CollaborationPanel({
                         </div>
                       </div>
                     </Card>
-                  ))}
+                    ))
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>

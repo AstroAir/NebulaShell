@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Terminal } from '../terminal/Terminal'
 import { TerminalProvider } from '../terminal/TerminalContext'
-import { MockTerminal } from '../../../tests/mocks/xterm'
+import { MockTerminal } from '../../../__tests__/mocks/xterm'
 
 // Mock xterm.js
 jest.mock('@xterm/xterm', () => ({

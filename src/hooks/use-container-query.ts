@@ -53,11 +53,11 @@ export interface ContainerQueryState {
  * Hook for container queries - monitors the size of a specific container element
  * and provides responsive breakpoints based on container width rather than viewport width
  */
-export function useContainerQuery(): [
-  React.RefObject<HTMLElement>,
+export function useContainerQuery<T extends HTMLElement = HTMLElement>(): [
+  React.RefObject<T | null>,
   ContainerQueryState
 ] {
-  const containerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<T>(null);
   const [state, setState] = useState<ContainerQueryState>({
     width: 0,
     height: 0,

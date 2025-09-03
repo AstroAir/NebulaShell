@@ -274,8 +274,27 @@ export class TerminalCommandProcessor {
   }
 
   private async handleLocalHelpCommand(args: string[], sessionId: string, terminal: any): Promise<boolean> {
+    // If specific command requested
+    if (args.length > 0) {
+      const commandName = args[0];
+      const command = this.localCommands.get(commandName);
+
+      if (command) {
+        terminal.writeln(`\x1b[36mHelp for '${commandName}':\x1b[0m`);
+        terminal.writeln(`  ${command.description}`);
+        if (command.aliases && command.aliases.length > 0) {
+          terminal.writeln(`  Aliases: ${command.aliases.join(', ')}`);
+        }
+        return true;
+      } else {
+        terminal.writeln(`\x1b[31mCommand not found: ${commandName}\x1b[0m`);
+        return true;
+      }
+    }
+
+    // Show all commands
     terminal.writeln('\x1b[36mAvailable Local Terminal Commands:\x1b[0m');
-    
+
     const commands = Array.from(this.localCommands.values())
       .filter((cmd, index, arr) => arr.findIndex(c => c.name === cmd.name) === index) // Remove duplicates from aliases
       .sort((a, b) => a.name.localeCompare(b.name));

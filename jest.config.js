@@ -4,6 +4,8 @@ const config = {
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '\\.module\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
   testPathIgnorePatterns: [
     '<rootDir>/.next/',
@@ -11,6 +13,15 @@ const config = {
     '<rootDir>/dist/',
     '<rootDir>/e2e/',
   ],
+  // Memory and performance optimizations
+  maxWorkers: 1, // Use single worker to prevent hanging and memory issues
+  workerIdleMemoryLimit: '256MB', // Reduce memory limit for workers
+  testTimeout: 15000, // 15 seconds timeout (reduced from 30s)
+
+  // Prevent hanging tests and memory leaks
+  forceExit: true, // Force exit after tests complete
+  detectOpenHandles: false, // Disable to prevent false positives causing memory issues
+  detectLeaks: false, // Disable experimental leak detection that causes heap issues
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       useESM: false,
@@ -64,15 +75,21 @@ const config = {
   testMatch: [
     '<rootDir>/__tests__/**/*.test.{js,jsx,ts,tsx}',
     '<rootDir>/src/**/__tests__/**/*.test.{js,jsx,ts,tsx}',
-    '<rootDir>/tests/**/*.test.{js,ts}',
   ],
   setupFiles: ['<rootDir>/__tests__/setup/env.js'],
-  // globalSetup: '<rootDir>/__tests__/setup/global-setup.js',
-  // globalTeardown: '<rootDir>/__tests__/setup/global-teardown.js',
-  // watchPlugins: [
-  //   'jest-watch-typeahead/filename',
-  //   'jest-watch-typeahead/testname',
-  // ],
+
+  // Additional memory management settings
+  clearMocks: true,
+  restoreMocks: true,
+  resetMocks: true,
+
+  // Optimize test execution
+  bail: false, // Don't bail on first failure to see all issues
+  verbose: false, // Reduce verbose output to save memory
+
+  // Cache settings for better performance
+  cache: true,
+  cacheDirectory: '<rootDir>/node_modules/.cache/jest',
 }
 
 module.exports = config

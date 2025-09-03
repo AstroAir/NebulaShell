@@ -338,8 +338,8 @@ export class EnhancedTerminalHistoryManager {
     // Calculate success rate
     const commandsWithExitCode = this.history.filter(e => e.exitCode !== undefined);
     const successfulCommands = commandsWithExitCode.filter(e => e.exitCode === 0);
-    const successRate = commandsWithExitCode.length > 0 
-      ? (successfulCommands.length / commandsWithExitCode.length) * 100 
+    const successRate = commandsWithExitCode.length > 0
+      ? (successfulCommands.length / commandsWithExitCode.length)
       : 0;
 
     // Calculate commands per day for last 30 days

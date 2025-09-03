@@ -1,11 +1,13 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Terminal } from '../terminal/Terminal'
 import { SSHConnectionForm } from '../ssh/SSHConnectionForm'
 import { ConnectionStatus } from '../ssh/ConnectionStatus'
+// Unmock the TerminalContext to use the real implementation
+jest.unmock('@/components/terminal/TerminalContext')
 import { TerminalProvider } from '../terminal/TerminalContext'
-import { MockSocket } from '../../../tests/mocks/socket.io'
+import { MockSocket } from '../../../__tests__/mocks/socket.io'
 
 // Mock socket.io-client
 jest.mock('socket.io-client', () => ({
@@ -446,35 +448,39 @@ describe('Accessibility and User Experience Tests', () => {
   describe('Focus Management', () => {
     it('should manage focus properly during state changes', async () => {
       render(<TerminalApp />)
-      
+
       const hostnameInput = screen.getByLabelText(/hostname/i)
       const connectButton = screen.getByRole('button', { name: /connect/i })
-      
+
       // Focus hostname input
       hostnameInput.focus()
       expect(hostnameInput).toHaveFocus()
-      
+
       // Fill form and connect
       await user.type(hostnameInput, 'example.com')
       await user.type(screen.getByLabelText(/username/i), 'testuser')
       await user.type(screen.getByPlaceholderText('Enter password'), 'testpass')
-      
-      mockSocket.connect()
-      await user.click(connectButton)
-      
-      mockSocket.simulateServerEvent('ssh_connected', {
-        sessionId: 'test-session',
-        status: 'connected'
+
+      await act(async () => {
+        mockSocket.connect()
       })
-      
+      await user.click(connectButton)
+
+      await act(async () => {
+        mockSocket.simulateServerEvent('ssh_connected', {
+          sessionId: 'test-session',
+          status: 'connected'
+        })
+      })
+
       await waitFor(() => {
         const disconnectButton = screen.getByRole('button', { name: /disconnect/i })
         expect(disconnectButton).toBeInTheDocument()
-      })
-      
+      }, { timeout: 5000 })
+
       // Focus should be managed appropriately
       expect(document.activeElement).toBeDefined()
-    })
+    }, 10000)
 
     it('should trap focus in modal dialogs', async () => {
       render(<TerminalApp />)

@@ -1,10 +1,10 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { TerminalProvider } from '../../src/components/terminal/TerminalContext'
-import { Terminal } from '../../src/components/terminal/Terminal'
-import { SSHConnectionForm } from '../../src/components/ssh/SSHConnectionForm'
-import { ConnectionStatus } from '../../src/components/ssh/ConnectionStatus'
+import { TerminalProvider } from '@/components/terminal/TerminalContext'
+import { Terminal } from '@/components/terminal/Terminal'
+import { SSHConnectionForm } from '@/components/ssh/SSHConnectionForm'
+import { ConnectionStatus } from '@/components/ssh/ConnectionStatus'
 import { MockSocket } from '../mocks/socket.io'
 
 // Mock socket.io-client
@@ -169,7 +169,7 @@ describe('Frontend Terminal Flow Integration', () => {
 
       // Set up connected state
       await user.type(screen.getByLabelText(/hostname/i), 'test.example.com')
-      await user.type(screen.getByLabelText(/username/i), 'testuser')
+      await user.type(screen.getByRole('textbox', { name: /username/i }), 'testuser')
       await user.type(screen.getByLabelText(/password/i), 'testpass')
 
       mockSocket.connect()
@@ -245,8 +245,8 @@ describe('Frontend Terminal Flow Integration', () => {
       render(<TerminalApp />)
 
       // Switch to private key authentication
-      const keyRadio = screen.getByRole('radio', { name: /private key/i })
-      await user.click(keyRadio)
+      const keyTab = screen.getByRole('tab', { name: /private key/i })
+      await user.click(keyTab)
 
       // Fill form with private key
       await user.type(screen.getByLabelText(/hostname/i), 'test.example.com')
@@ -286,8 +286,8 @@ describe('Frontend Terminal Flow Integration', () => {
 
       // First attempt - fail
       await user.type(screen.getByLabelText(/hostname/i), 'test.example.com')
-      await user.type(screen.getByLabelText(/username/i), 'testuser')
-      await user.type(screen.getByLabelText(/password/i), 'wrongpass')
+      await user.type(screen.getByRole('textbox', { name: /username/i }), 'testuser')
+      await user.type(screen.getByPlaceholderText('Enter password'), 'wrongpass')
 
       mockSocket.connect()
       await user.click(screen.getByRole('button', { name: /connect/i }))
@@ -343,8 +343,8 @@ describe('Frontend Terminal Flow Integration', () => {
 
       // Should be able to connect again
       await user.type(screen.getByLabelText(/hostname/i), 'test.example.com')
-      await user.type(screen.getByLabelText(/username/i), 'testuser')
-      await user.type(screen.getByLabelText(/password/i), 'testpass')
+      await user.type(screen.getByRole('textbox', { name: /username/i }), 'testuser')
+      await user.type(screen.getByPlaceholderText('Enter password'), 'testpass')
 
       await user.click(screen.getByRole('button', { name: /connect/i }))
 

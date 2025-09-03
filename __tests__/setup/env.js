@@ -19,7 +19,11 @@ console.warn = (...args) => {
 
 // Mock performance.now for consistent timing in tests
 global.performance = global.performance || {};
-global.performance.now = jest.fn(() => Date.now());
+let mockTime = 0;
+global.performance.now = jest.fn(() => {
+  mockTime += 10; // Simulate 10ms increments for consistent timing
+  return mockTime;
+});
 
 // Mock crypto for ID generation
 global.crypto = global.crypto || {};
@@ -40,5 +44,36 @@ global.TextEncoder = global.TextEncoder || class TextEncoder {
 global.TextDecoder = global.TextDecoder || class TextDecoder {
   decode(arr) {
     return String.fromCharCode.apply(null, arr);
+  }
+};
+
+// Global test timeout to prevent hanging
+jest.setTimeout(30000);
+
+// Add global cleanup to prevent hanging tests
+let testTimeouts = new Set();
+
+global.setTestTimeout = (callback, delay) => {
+  const timeoutId = setTimeout(callback, delay);
+  testTimeouts.add(timeoutId);
+  return timeoutId;
+};
+
+global.clearTestTimeout = (timeoutId) => {
+  clearTimeout(timeoutId);
+  testTimeouts.delete(timeoutId);
+};
+
+// Set up React testing environment
+global.IS_REACT_ACT_ENVIRONMENT = true;
+
+// Global cleanup function for tests to use
+global.cleanupTestTimeouts = () => {
+  testTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+  testTimeouts.clear();
+
+  // Force garbage collection if available
+  if (global.gc) {
+    global.gc();
   }
 };

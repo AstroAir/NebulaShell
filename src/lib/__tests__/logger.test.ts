@@ -22,6 +22,10 @@ describe('Logger', () => {
 
     // Clear security manager mock
     jest.clearAllMocks()
+
+    // Ensure the mock is working
+    const mockSanitize = securityManager.sanitizeLogData as jest.MockedFunction<typeof securityManager.sanitizeLogData>;
+    mockSanitize.mockImplementation((data) => data);
   })
 
   afterEach(() => {

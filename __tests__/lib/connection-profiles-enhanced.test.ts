@@ -109,6 +109,7 @@ describe('EnhancedConnectionProfileManager', () => {
         name: 'Production Servers',
         description: 'All production environment servers',
         color: '#ef4444',
+        profiles: [],
       });
       
       expect(groupId).toBeDefined();
@@ -123,6 +124,7 @@ describe('EnhancedConnectionProfileManager', () => {
         name: 'Test Group',
         description: 'Test group',
         color: '#3b82f6',
+        profiles: [],
       });
       
       const profileId = profileManager.createProfile({
@@ -131,6 +133,10 @@ describe('EnhancedConnectionProfileManager', () => {
         port: 22,
         username: 'testuser',
         authMethod: 'password' as const,
+        connectionOptions: {
+          keepAlive: true,
+          timeout: 10000,
+        },
       });
       
       const success = profileManager.assignToGroup(profileId, groupId);
@@ -146,6 +152,7 @@ describe('EnhancedConnectionProfileManager', () => {
         name: 'Test Group',
         description: 'Test group',
         color: '#3b82f6',
+        profiles: [],
       });
       
       const profileId1 = profileManager.createProfile({
@@ -154,14 +161,22 @@ describe('EnhancedConnectionProfileManager', () => {
         port: 22,
         username: 'user',
         authMethod: 'password' as const,
+        connectionOptions: {
+          keepAlive: true,
+          timeout: 10000,
+        },
       });
-      
+
       const profileId2 = profileManager.createProfile({
         name: 'Server 2',
         hostname: 'server2.example.com',
         port: 22,
         username: 'user',
         authMethod: 'password' as const,
+        connectionOptions: {
+          keepAlive: true,
+          timeout: 10000,
+        },
       });
       
       profileManager.assignToGroup(profileId1, groupId);
@@ -185,6 +200,10 @@ describe('EnhancedConnectionProfileManager', () => {
         port: 22,
         username: 'testuser',
         authMethod: 'password' as const,
+        connectionOptions: {
+          keepAlive: true,
+          timeout: 10000,
+        },
       });
     });
 
@@ -282,16 +301,22 @@ describe('EnhancedConnectionProfileManager', () => {
         port: 22,
         username: 'deploy',
         authMethod: 'key' as const,
-        metadata: { tags: ['production', 'web'] },
+        connectionOptions: {
+          keepAlive: true,
+          timeout: 10000,
+        },
       });
-      
+
       profileManager.createProfile({
         name: 'Development Database',
         hostname: 'db.dev.example.com',
         port: 5432,
         username: 'postgres',
         authMethod: 'password' as const,
-        metadata: { tags: ['development', 'database'] },
+        connectionOptions: {
+          keepAlive: true,
+          timeout: 10000,
+        },
       });
     });
 
@@ -332,6 +357,7 @@ describe('EnhancedConnectionProfileManager', () => {
         name: 'Test Group',
         description: 'Test group',
         color: '#3b82f6',
+        profiles: [],
       });
       
       const profileId = profileManager.createProfile({
@@ -340,7 +366,10 @@ describe('EnhancedConnectionProfileManager', () => {
         port: 22,
         username: 'testuser',
         authMethod: 'password' as const,
-        metadata: { tags: ['test'], favorite: true },
+        connectionOptions: {
+          keepAlive: true,
+          timeout: 10000,
+        },
       });
       
       profileManager.assignToGroup(profileId, groupId);
@@ -361,16 +390,16 @@ describe('EnhancedConnectionProfileManager', () => {
 
     it('imports profiles and groups', () => {
       const exportData = profileManager.exportProfiles();
-      
-      // Create new manager and import
+
+      // Create new manager and import with replace strategy
       const newManager = new EnhancedConnectionProfileManager();
-      const success = newManager.importProfiles(exportData);
-      
+      const success = newManager.importProfiles(exportData, 'replace');
+
       expect(success).toBe(true);
-      
+
       const profiles = newManager.getAllProfiles();
       const groups = newManager.getAllGroups();
-      
+
       expect(profiles).toHaveLength(1);
       expect(groups).toHaveLength(1);
       expect(profiles[0].name).toBe('Test Server');
@@ -392,6 +421,10 @@ describe('EnhancedConnectionProfileManager', () => {
         port: 22,
         username: 'user',
         authMethod: 'password' as const,
+        connectionOptions: {
+          keepAlive: true,
+          timeout: 10000,
+        },
       });
       
       // Import should merge
@@ -412,6 +445,10 @@ describe('EnhancedConnectionProfileManager', () => {
         port: 22,
         username: 'testuser',
         authMethod: 'password' as const,
+        connectionOptions: {
+          keepAlive: true,
+          timeout: 10000,
+        },
       });
       
       expect(localStorage.setItem).toHaveBeenCalledWith(
@@ -421,26 +458,47 @@ describe('EnhancedConnectionProfileManager', () => {
     });
 
     it('loads data from localStorage on initialization', () => {
-      const testData = {
-        profiles: [
-          {
-            id: 'test-1',
-            name: 'Saved Server',
-            hostname: 'saved.example.com',
-            port: 22,
-            username: 'user',
-            authMethod: 'password',
-            metadata: { createdAt: Date.now() },
+      const testProfiles = [
+        {
+          id: 'test-1',
+          name: 'Saved Server',
+          hostname: 'saved.example.com',
+          port: 22,
+          username: 'user',
+          authMethod: 'password',
+          connectionOptions: {
+            keepAlive: true,
+            timeout: 10000,
           },
-        ],
-        groups: [],
-      };
-      
-      localStorage.getItem.mockReturnValue(JSON.stringify(testData));
-      
+          metadata: {
+            createdAt: Date.now(),
+            lastUsed: 0,
+            useCount: 0,
+            favorite: false,
+            tags: [],
+          },
+        },
+      ];
+
+      // Mock different localStorage keys
+      localStorage.getItem.mockImplementation((key: string) => {
+        switch (key) {
+          case 'connection-profiles-enhanced':
+            return JSON.stringify(testProfiles);
+          case 'connection-groups':
+            return JSON.stringify([]);
+          case 'connection-templates':
+            return JSON.stringify([]);
+          case 'recent-connections':
+            return JSON.stringify([]);
+          default:
+            return null;
+        }
+      });
+
       const newManager = new EnhancedConnectionProfileManager();
       const profiles = newManager.getAllProfiles();
-      
+
       expect(profiles).toHaveLength(1);
       expect(profiles[0].name).toBe('Saved Server');
     });
@@ -457,6 +515,10 @@ describe('EnhancedConnectionProfileManager', () => {
           port: 22,
           username: 'testuser',
           authMethod: 'password' as const,
+          connectionOptions: {
+            keepAlive: true,
+            timeout: 10000,
+          },
         });
       }).not.toThrow();
     });

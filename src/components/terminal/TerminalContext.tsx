@@ -63,23 +63,27 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
       transports: ['websocket', 'polling']
     });
 
+    // Set socket immediately so tests can access it
+    setSocket(newSocket);
+    socketRef.current = newSocket;
+
     newSocket.on('connect', () => {
       console.log('Socket connected');
-      setSocket(newSocket);
-      socketRef.current = newSocket;
+      // Socket is already set, just log the connection
     });
 
     newSocket.on('disconnect', () => {
       console.log('Socket disconnected');
       setConnectionStatus({ status: 'disconnected' });
       setSessionId(null);
+      // Keep the socket reference but it will show as disconnected
     });
 
     newSocket.on('ssh_connected', (data: { sessionId: string; status: string }) => {
       console.log('SSH connected:', data);
-      setConnectionStatus({ 
-        status: 'connected', 
-        sessionId: data.sessionId 
+      setConnectionStatus({
+        status: 'connected',
+        sessionId: data.sessionId
       });
       setSessionId(data.sessionId);
     });

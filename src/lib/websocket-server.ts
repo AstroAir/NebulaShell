@@ -2,27 +2,37 @@ import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { sshManager } from './ssh-manager';
 import { SSHConnectionConfig } from '@/types/ssh';
+import { logger } from './logger';
 // WebSocketMessage import removed as not currently used
 
 export class WebSocketServer {
   private io: SocketIOServer;
 
-  constructor(server: HTTPServer) {
-    this.io = new SocketIOServer(server, {
-      cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-      }
-    });
+  constructor(server: HTTPServer | SocketIOServer) {
+    if ('on' in server && 'emit' in server) {
+      // If it's already a SocketIOServer instance (for testing)
+      this.io = server as SocketIOServer;
+    } else {
+      // Create new SocketIOServer from HTTP server
+      this.io = new SocketIOServer(server as HTTPServer, {
+        cors: {
+          origin: "*",
+          methods: ["GET", "POST"]
+        }
+      });
+    }
 
     this.setupEventHandlers();
   }
 
   private setupEventHandlers() {
     this.io.on('connection', (socket) => {
-      console.log('Client connected:', socket.id);
+      logger.info('WebSocket client connected', {
+        socketId: socket.id,
+        clientIP: socket.handshake.address
+      });
 
-      socket.on('ssh_connect', async (data: { config: SSHConnectionConfig }) => {
+      socket.on('ssh:connect', async (data: { config: SSHConnectionConfig }) => {
         let sessionId: string | undefined;
         try {
           const session = await sshManager.createSession(data.config);
@@ -43,15 +53,15 @@ export class WebSocketServer {
 
           // Handle shell data
           shell.on('data', (data: Buffer) => {
-            socket.emit('terminal_data', {
-              sessionId: session.id,
-              data: data.toString()
-            });
+            socket.emit('terminal:output', data.toString());
             sshManager.updateLastActivity(session.id);
           });
 
           shell.on('close', () => {
-            socket.emit('ssh_disconnected', { sessionId: session.id });
+            socket.emit('ssh:disconnected', {
+              sessionId: session.id,
+              success: true
+            });
             sshManager.disconnect(session.id);
           });
 
@@ -59,21 +69,25 @@ export class WebSocketServer {
           (socket as any).shell = shell;
           (socket as any).sessionId = session.id;
 
-          socket.emit('ssh_connected', {
+          socket.emit('ssh:connected', {
             sessionId: session.id,
             status: 'connected'
           });
 
         } catch (error) {
-          console.error('SSH connection error:', error);
-          socket.emit('ssh_error', {
-            message: error instanceof Error ? error.message : 'Connection failed',
+          logger.error('SSH connection failed', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            sessionId: sessionId || data.config.id
+          });
+          socket.emit('ssh:error', {
+            error: error instanceof Error ? error.message : 'Connection failed',
+            success: false,
             sessionId: sessionId || data.config.id
           });
         }
       });
 
-      socket.on('terminal_input', (data: { sessionId: string; input: string }) => {
+      socket.on('terminal:input', (data: { sessionId: string; input: string }) => {
         // Validate input data
         if (!data || !data.sessionId || data.input === null || data.input === undefined) {
           socket.emit('ssh_error', {
@@ -91,7 +105,7 @@ export class WebSocketServer {
         }
       });
 
-      socket.on('terminal_resize', (data: { sessionId: string; cols: number; rows: number }) => {
+      socket.on('terminal:resize', (data: { sessionId: string; cols: number; rows: number }) => {
         // Validate resize data
         if (!data || !data.sessionId || !data.cols || !data.rows ||
             data.cols < 1 || data.cols > 1000 || data.rows < 1 || data.rows > 1000) {
@@ -110,7 +124,7 @@ export class WebSocketServer {
         }
       });
 
-      socket.on('ssh_disconnect', () => {
+      socket.on('ssh:disconnect', () => {
         const sessionId = (socket as any).sessionId;
         const shell = (socket as any).shell;
         
@@ -124,7 +138,9 @@ export class WebSocketServer {
       });
 
       socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
+        logger.info('WebSocket client disconnected', {
+          socketId: socket.id
+        });
         const sessionId = (socket as any).sessionId;
         const shell = (socket as any).shell;
         

@@ -82,7 +82,7 @@ export function DragDropFileTransfer({
     e.preventDefault();
     e.stopPropagation();
     setDragCounter(prev => prev + 1);
-    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+    if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
       setIsDragOver(true);
     }
   }, []);
@@ -90,11 +90,14 @@ export function DragDropFileTransfer({
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragCounter(prev => prev - 1);
-    if (dragCounter <= 1) {
-      setIsDragOver(false);
-    }
-  }, [dragCounter]);
+    setDragCounter(prev => {
+      const newCount = prev - 1;
+      if (newCount <= 0) {
+        setIsDragOver(false);
+      }
+      return newCount;
+    });
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -118,9 +121,15 @@ export function DragDropFileTransfer({
           if (type.startsWith('.')) {
             return file.name.toLowerCase().endsWith(type.toLowerCase());
           }
-          return file.type.startsWith(type);
+          // Handle wildcard types like 'image/*'
+          if (type.endsWith('/*')) {
+            const baseType = type.slice(0, -2);
+            return file.type && file.type.startsWith(baseType);
+          }
+          // Handle exact type matches, with fallback for empty file.type
+          return file.type && file.type === type;
         });
-        
+
         if (!isAllowed) {
           newErrors.push(`${file.name}: File type not allowed`);
           return;
@@ -138,6 +147,11 @@ export function DragDropFileTransfer({
     e.stopPropagation();
     setIsDragOver(false);
     setDragCounter(0);
+
+    if (!e.dataTransfer?.files) {
+      announce('No files detected in drop event', 'assertive');
+      return;
+    }
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
@@ -259,14 +273,25 @@ export function DragDropFileTransfer({
         {/* Drop Zone */}
         <div
           ref={dropZoneRef}
+          role="button"
+          tabIndex={0}
+          aria-describedby="drop-zone-description"
+          aria-label="Drag files here to upload or click to select files"
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
           className={cn(
-            'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
-            isDragOver 
-              ? 'border-primary bg-primary/10' 
+            'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer',
+            isDragOver
+              ? 'border-primary bg-primary/10'
               : 'border-muted-foreground/25 hover:border-muted-foreground/50'
           )}
         >
@@ -283,14 +308,9 @@ export function DragDropFileTransfer({
                 or click to select files
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2"
-            >
-              <Upload className="h-4 w-4" />
-              Select Files
-            </Button>
+            <span className="text-sm font-medium text-primary">
+              Click anywhere to select files
+            </span>
             <input
               ref={fileInputRef}
               type="file"
@@ -298,7 +318,13 @@ export function DragDropFileTransfer({
               className="hidden"
               onChange={handleFileSelect}
               accept={allowedTypes?.join(',')}
+              aria-label="Select files for upload"
             />
+            <div id="drop-zone-description" className="sr-only">
+              Drag and drop files here to upload them, or click to open file selection dialog.
+              Maximum file size: {Math.round(maxFileSize / (1024 * 1024))}MB.
+              {allowedTypes && ` Allowed types: ${allowedTypes.join(', ')}`}
+            </div>
           </div>
         </div>
 

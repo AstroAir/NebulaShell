@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ export function SSHConnectionForm({ className }: SSHConnectionFormProps) {
   const { connect, disconnect, connectionStatus } = useTerminal();
   const [authMethod, setAuthMethod] = useState<'password' | 'key'>('password');
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<SSHFormData>({
     defaultValues: {
@@ -48,15 +49,24 @@ export function SSHConnectionForm({ className }: SSHConnectionFormProps) {
   const onSubmit = async (data: SSHFormData) => {
     try {
       setError(null);
+      setIsSubmitting(true);
 
       // Basic validation
       if (!data.hostname || !data.username) {
         setError('Hostname and username are required');
+        setIsSubmitting(false);
         return;
       }
 
-      if (!data.password && !data.privateKey) {
-        setError('Either password or private key is required');
+      if (authMethod === 'password' && !data.password) {
+        setError('Password is required for password authentication');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (authMethod === 'key' && !data.privateKey) {
+        setError('Private key is required for key authentication');
+        setIsSubmitting(false);
         return;
       }
 
@@ -71,19 +81,44 @@ export function SSHConnectionForm({ className }: SSHConnectionFormProps) {
         name: data.name || `${data.username}@${data.hostname}`,
       };
 
-      connect(config);
+      await connect(config);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Connection failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDisconnect = () => {
     disconnect();
     setError(null);
+    setIsSubmitting(false);
+  };
+
+  // Sync form state with connection status
+  useEffect(() => {
+    if (connectionStatus.status === 'error' && connectionStatus.message) {
+      setError(connectionStatus.message);
+      setIsSubmitting(false);
+    } else if (connectionStatus.status === 'connected') {
+      setError(null);
+      setIsSubmitting(false);
+    } else if (connectionStatus.status === 'connecting') {
+      setError(null);
+    } else if (connectionStatus.status === 'disconnected') {
+      setIsSubmitting(false);
+    }
+  }, [connectionStatus.status, connectionStatus.message]);
+
+  // Clear error when user starts typing (for better UX)
+  const handleInputChange = () => {
+    if (error && connectionStatus.status !== 'error') {
+      setError(null);
+    }
   };
 
   const isConnected = connectionStatus.status === 'connected';
-  const isConnecting = connectionStatus.status === 'connecting';
+  const isConnecting = connectionStatus.status === 'connecting' || isSubmitting;
 
   return (
     <Card className={className}>
@@ -115,6 +150,10 @@ export function SSHConnectionForm({ className }: SSHConnectionFormProps) {
                 placeholder="example.com"
                 disabled={isConnected || isConnecting}
                 {...form.register('hostname')}
+                onChange={(e) => {
+                  form.setValue('hostname', e.target.value);
+                  handleInputChange();
+                }}
               />
               {form.formState.errors.hostname && (
                 <p className="text-sm text-red-500 mt-1">
@@ -146,6 +185,10 @@ export function SSHConnectionForm({ className }: SSHConnectionFormProps) {
               placeholder="root"
               disabled={isConnected || isConnecting}
               {...form.register('username')}
+              onChange={(e) => {
+                form.setValue('username', e.target.value);
+                handleInputChange();
+              }}
             />
             {form.formState.errors.username && (
               <p className="text-sm text-red-500 mt-1">
@@ -173,6 +216,10 @@ export function SSHConnectionForm({ className }: SSHConnectionFormProps) {
                   placeholder="Enter password"
                   disabled={isConnected || isConnecting}
                   {...form.register('password')}
+                  onChange={(e) => {
+                    form.setValue('password', e.target.value);
+                    handleInputChange();
+                  }}
                 />
               </div>
             </TabsContent>

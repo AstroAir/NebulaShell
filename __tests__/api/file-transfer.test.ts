@@ -1,3 +1,16 @@
+// Mock path module with simple, working join function
+jest.mock('path', () => ({
+  join: (...args: string[]) => {
+    // Simple path joining that works reliably in tests
+    const validArgs = args.filter(arg => arg != null && arg !== '');
+    return validArgs.length > 0 ? validArgs.join('/').replace(/\/+/g, '/') : '/tmp/test-uploads';
+  },
+  extname: (filename: string) => {
+    const parts = filename.split('.');
+    return parts.length > 1 ? `.${parts[parts.length - 1]}` : '';
+  },
+}));
+
 import { NextRequest } from 'next/server';
 import { POST as uploadPOST } from '@/app/api/file-transfer/upload/route';
 import { POST as downloadPOST } from '@/app/api/file-transfer/download/route';
@@ -22,13 +35,11 @@ jest.mock('fs/promises', () => ({
   readdir: jest.fn(),
 }));
 
-jest.mock('path', () => ({
-  join: jest.fn((...args) => args.join('/')),
-  extname: jest.fn((filename) => {
-    const parts = filename.split('.');
-    return parts.length > 1 ? `.${parts[parts.length - 1]}` : '';
-  }),
-}));
+
+
+// Mock process.cwd() to return a valid path
+const originalCwd = process.cwd;
+process.cwd = jest.fn(() => '/mock/project/root');
 
 const mockFs = fs as jest.Mocked<typeof fs>;
 const mockFsPromises = require('fs/promises') as jest.Mocked<typeof import('fs/promises')>;
@@ -47,8 +58,13 @@ describe('File Transfer API', () => {
     };
 
     const createMockFile = (name: string, content: string, type: string) => {
-      const file = new File([content], name, { type });
-      Object.defineProperty(file, 'size', { value: content.length });
+      // For large files, don't include the full content to avoid memory issues
+      const actualSize = content.length;
+      const sampleContent = content.length > 1000 ? content.substring(0, 1000) + '...[truncated]' : content;
+      const metadataContent = `MOCK_FILE_|${name}|${type}|${actualSize}|${sampleContent}`;
+      const file = new File([metadataContent], name, { type });
+      // Set the size to the actual content length for validation
+      Object.defineProperty(file, 'size', { value: actualSize, writable: false, configurable: true });
       return file;
     };
 
@@ -125,6 +141,9 @@ describe('File Transfer API', () => {
 
       const request = createMockRequest(formData);
       const response = await uploadPOST(request);
+
+      // Debug: Check what mkdir was actually called with
+      console.log('mkdir calls:', mockFsPromises.mkdir.mock.calls);
 
       expect(mockFsPromises.mkdir).toHaveBeenCalledWith(
         expect.stringContaining('user-uploads'),

@@ -27,7 +27,7 @@ class TestSummaryGenerator {
     try {
       // Run unit tests
       console.log('📋 Running unit tests...');
-      const unitResult = this.runCommand('npx jest __tests__/components __tests__/lib --json --coverage');
+      const unitResult = this.runCommand('npx jest __tests__/components __tests__/lib src/components/__tests__ src/lib/__tests__ --json --coverage');
       this.parseJestResults(unitResult, 'unit');
 
       // Run integration tests

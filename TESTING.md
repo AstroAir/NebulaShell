@@ -13,12 +13,7 @@ The project uses a comprehensive testing approach with:
 ## Test Structure
 
 ```
-tests/
-├── unit/                    # Backend unit tests
-│   ├── ssh-manager.test.ts
-│   ├── security-manager.test.ts
-│   ├── terminal-history-manager.test.ts
-│   └── sftp-manager.test.ts
+__tests__/
 ├── integration/             # Backend integration tests
 │   ├── websocket-server.test.ts
 │   └── ssh-operations.test.ts
@@ -26,6 +21,12 @@ tests/
 │   ├── socket.io.ts
 │   ├── ssh.ts
 │   └── xterm.ts
+├── accessibility/           # Accessibility tests
+├── api/                     # API tests
+├── components/              # Component tests
+├── lib/                     # Library tests
+├── performance/             # Performance tests
+└── e2e/                     # End-to-end tests
 src/
 ├── components/__tests__/    # Frontend component tests
 │   ├── Terminal.test.tsx
@@ -33,6 +34,10 @@ src/
 │   ├── SSHConnectionForm.test.tsx
 │   └── ConnectionStatus.test.tsx
 └── lib/__tests__/          # Frontend library tests
+    ├── ssh-manager.test.ts
+    ├── sftp-manager.test.ts
+    ├── security.test.ts
+    └── terminal-history-enhanced.test.ts
 ```
 
 ## Running Tests
@@ -59,52 +64,22 @@ pnpm test:ci                # Run all tests for CI (no watch mode)
 
 ## Test Categories
 
-### 1. Backend Unit Tests
+### 1. Backend Integration Tests
 
-#### SSH Manager Tests (`tests/unit/ssh-manager.test.ts`)
-- Session creation and management
-- SSH connection establishment
-- Authentication (password and key-based)
-- Error handling and validation
-- Session cleanup and rate limiting
-
-#### Security Manager Tests (`tests/unit/security-manager.test.ts`)
-- SSH configuration validation
-- Rate limiting functionality
-- Input sanitization
-- Terminal dimension validation
-- Data encryption/decryption
-
-#### Terminal History Manager Tests (`tests/unit/terminal-history-manager.test.ts`)
-- Command history storage and retrieval
-- Session management
-- History navigation (previous/next)
-- Search functionality
-- Settings management
-
-#### SFTP Manager Tests (`tests/unit/sftp-manager.test.ts`)
-- SFTP connection establishment
-- File operations (upload/download/delete)
-- Directory listing and navigation
-- Progress tracking
-- Error handling
-
-### 2. Backend Integration Tests
-
-#### WebSocket Server Tests (`tests/integration/websocket-server.test.ts`)
+#### WebSocket Server Tests (`__tests__/integration/websocket-server.test.ts`)
 - Socket.IO connection handling
 - SSH connection flow through WebSocket
 - Terminal input/output streaming
 - Connection cleanup and error handling
 - Real-time communication testing
 
-#### SSH Operations Tests (`tests/integration/ssh-operations.test.ts`)
+#### SSH Operations Tests (`__tests__/integration/ssh-operations.test.ts`)
 - End-to-end SSH session lifecycle
 - Integration between SSH, SFTP, and terminal managers
 - Concurrent session handling
 - Error recovery and cleanup
 
-### 3. Frontend Unit Tests
+### 2. Frontend Unit Tests
 
 #### Terminal Component Tests (`src/components/__tests__/Terminal.test.tsx`)
 - Terminal rendering and initialization
@@ -131,9 +106,15 @@ pnpm test:ci                # Run all tests for CI (no watch mode)
 - Session ID display
 - Accessibility features
 
-### 4. Frontend Integration Tests
+#### Library Tests (`src/lib/__tests__/`)
+- SSH Manager: Session creation, connection establishment, authentication
+- SFTP Manager: File operations, directory navigation, progress tracking
+- Security Manager: Configuration validation, rate limiting, encryption
+- Terminal History: Command storage, search functionality, session management
 
-#### Terminal Flow Tests (`tests/integration/frontend-terminal-flow.test.tsx`)
+### 3. Frontend Integration Tests
+
+#### Terminal Flow Tests (`__tests__/integration/frontend-terminal-flow.test.tsx`)
 - Complete SSH connection workflow
 - Terminal interaction and data flow
 - Authentication method testing

@@ -313,8 +313,26 @@ export class TerminalThemeManager {
     return Array.from(this.themes.values()).filter(theme => theme.category === category);
   }
 
+  private isValidTheme(theme: any): theme is TerminalTheme {
+    return (
+      theme &&
+      typeof theme === 'object' &&
+      typeof theme.id === 'string' &&
+      typeof theme.name === 'string' &&
+      theme.colors &&
+      typeof theme.colors === 'object' &&
+      typeof theme.colors.background === 'string' &&
+      typeof theme.colors.foreground === 'string'
+    );
+  }
+
   addCustomTheme(theme: TerminalTheme): boolean {
     try {
+      // Validate theme structure
+      if (!this.isValidTheme(theme)) {
+        return false;
+      }
+
       // Ensure unique ID
       if (this.themes.has(theme.id)) {
         return false;
@@ -323,7 +341,7 @@ export class TerminalThemeManager {
       theme.category = 'custom';
       this.themes.set(theme.id, theme);
       this.customThemes.push(theme);
-      
+
       localStorage.setItem('terminal-custom-themes', JSON.stringify(this.customThemes));
       return true;
     } catch (error) {

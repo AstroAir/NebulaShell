@@ -11,11 +11,13 @@
     "strict": true,
     "noEmit": false,
     "isolatedModules": false,
+    "forceConsistentCasingInFileNames": true,
     "types": ["jest", "@testing-library/jest-dom", "node"]
   },
   "include": [
     "src/**/*",
-    "tests/**/*"
+    "__tests__/**/*",
+    "__tests__/types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",

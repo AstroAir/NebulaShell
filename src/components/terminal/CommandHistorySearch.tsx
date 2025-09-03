@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -56,17 +56,23 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
   }, [searchResults]);
 
   const performSearch = () => {
-    const options: HistorySearchOptions = {
-      query: debouncedQuery || undefined,
-      ...selectedFilters,
-      limit: 100,
-    };
+    try {
+      const options: HistorySearchOptions = {
+        query: debouncedQuery || undefined,
+        ...selectedFilters,
+        limit: 100,
+      };
 
-    const results = enhancedTerminalHistoryManager.search(options);
-    setSearchResults(results);
-    
-    if (debouncedQuery) {
-      announce(`Found ${results.length} commands matching "${debouncedQuery}"`);
+      const results = enhancedTerminalHistoryManager.search(options);
+      setSearchResults(results);
+
+      if (debouncedQuery) {
+        announce(`Found ${results.length} commands matching "${debouncedQuery}"`);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+      announce('Search failed. Please try again.');
     }
   };
 
@@ -88,6 +94,7 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
       await navigator.clipboard.writeText(command);
       announce('Command copied to clipboard');
     } catch (error) {
+      console.error('Failed to copy command:', error);
       announce('Failed to copy command', 'assertive');
     }
   };
@@ -185,11 +192,18 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            id="command-search-input"
+            role="searchbox"
+            aria-label="Search command history"
+            aria-describedby="search-help-text"
             placeholder="Search commands... (try 'tag:git' or 'dir:/home')"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
+          <div id="search-help-text" className="sr-only">
+            Search through your command history. Use &apos;tag:&apos; to filter by tags or &apos;dir:&apos; to filter by directory.
+          </div>
         </div>
 
         {/* Filters */}
@@ -274,8 +288,27 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
           </TabsList>
 
           <TabsContent value="results" className="mt-4">
+            {/* Search Results Region */}
+            <div
+              role="region"
+              aria-label="Search results"
+              aria-live="polite"
+              aria-atomic="false"
+            >
+              <div className="sr-only">
+                {searchResults.length > 0
+                  ? `Found ${searchResults.length} commands`
+                  : 'No commands found'
+                }
+              </div>
+            </div>
+
             <ScrollArea className="h-96">
-              <div className="space-y-2">
+              <ul
+                role="list"
+                aria-label="Command history search results"
+                className="space-y-2"
+              >
                 {searchResults.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -284,11 +317,11 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
                   </div>
                 ) : (
                   searchResults.map((entry) => (
-                    <Card 
-                      key={entry.id}
-                      className="p-3 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => handleCommandSelect(entry.command)}
-                    >
+                    <li key={entry.id} role="listitem">
+                      <Card
+                        className="p-3 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => handleCommandSelect(entry.command)}
+                      >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
@@ -355,9 +388,10 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
                         </div>
                       </div>
                     </Card>
+                    </li>
                   ))
                 )}
-              </div>
+              </ul>
             </ScrollArea>
           </TabsContent>
 
