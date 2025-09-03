@@ -121,7 +121,7 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
   const disconnect = () => {
     if (!socket || !sessionId) return;
 
-    socket.emit('ssh_disconnect');
+    socket.emit('ssh_disconnect', { sessionId });
     setConnectionStatus({ status: 'disconnected' });
     setSessionId(null);
   };

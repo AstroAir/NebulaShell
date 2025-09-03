@@ -211,6 +211,11 @@ export function AccessibilityProvider({ children, maxAnnouncements = 10 }: Acces
       return;
     }
 
+    // Don't add empty or whitespace-only messages
+    if (!message || message.trim() === '') {
+      return;
+    }
+
     // Add to announcements array
     const newAnnouncement = { message, priority, timestamp: Date.now() };
     setAnnouncements(prev => {

@@ -273,8 +273,6 @@ export function DragDropFileTransfer({
         {/* Drop Zone */}
         <div
           ref={dropZoneRef}
-          role="button"
-          tabIndex={0}
           aria-describedby="drop-zone-description"
           aria-label="Drag files here to upload or click to select files"
           onDragEnter={handleDragEnter}
@@ -282,12 +280,6 @@ export function DragDropFileTransfer({
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              fileInputRef.current?.click();
-            }
-          }}
           className={cn(
             'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer',
             isDragOver
@@ -308,9 +300,14 @@ export function DragDropFileTransfer({
                 or click to select files
               </p>
             </div>
-            <span className="text-sm font-medium text-primary">
-              Click anywhere to select files
-            </span>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-2"
+            >
+              Select Files
+            </Button>
             <input
               ref={fileInputRef}
               type="file"
@@ -466,6 +463,16 @@ export function DragDropFileTransfer({
           </ScrollArea>
         </div>
       </CardContent>
+
+      {/* Status region for screen reader announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {transfers.length > 0 && `${activeTransfers.length} active transfers, ${completedTransfers.length} completed`}
+      </div>
     </Card>
   );
 }

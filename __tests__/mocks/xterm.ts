@@ -25,6 +25,8 @@ export class MockTerminal {
     if (addon && typeof addon.activate === 'function') {
       addon.activate(this);
     }
+    // Return this for method chaining
+    return this;
   })
 
   public clear = jest.fn(() => {

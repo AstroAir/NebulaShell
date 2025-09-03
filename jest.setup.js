@@ -114,13 +114,13 @@ global.PerformanceObserver = jest.fn(() => ({
   disconnect: jest.fn(),
 }));
 
-// Mock performance.now for timing tests
+// Mock performance.now for timing tests - use regular function to avoid jest.clearAllMocks() issues
 let mockTime = 0;
 global.performance = {
-  now: jest.fn(() => {
+  now: () => {
     mockTime += 10; // Simulate 10ms increments
     return mockTime;
-  }),
+  },
   mark: jest.fn(),
   measure: jest.fn(),
   getEntriesByName: jest.fn(() => []),
@@ -470,6 +470,15 @@ afterEach(() => {
   localStorageMock.setItem.mockClear();
   localStorageMock.removeItem.mockClear();
   localStorageMock.clear.mockClear();
+
+  // Restore performance.now mock after clearing (since it's not a jest.fn())
+  if (global.performance && typeof global.performance.now !== 'function') {
+    let mockTime = 0;
+    global.performance.now = () => {
+      mockTime += 10;
+      return mockTime;
+    };
+  }
 
   // Clean up any remaining timeouts/intervals
   global.cleanupTestTimeouts();

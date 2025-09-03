@@ -19,7 +19,7 @@ __tests__/
 │   └── ssh-operations.test.ts
 ├── mocks/                   # Test mocks and utilities
 │   ├── socket.io.ts
-│   ├── ssh.ts
+│   ├── ssh.ts              # Consolidated SSH mocking (includes node-ssh functionality)
 │   └── xterm.ts
 ├── accessibility/           # Accessibility tests
 ├── api/                     # API tests
@@ -142,7 +142,7 @@ pnpm test:ci                # Run all tests for CI (no watch mode)
 - **Browser APIs**: ResizeObserver, matchMedia, etc.
 
 ### Backend Mocks
-- **node-ssh**: Mock SSH connections
+- **SSH Operations**: Consolidated SSH mocking in `__tests__/mocks/ssh.ts` (includes node-ssh and custom SSH functionality)
 - **ssh2-sftp-client**: Mock SFTP operations
 - **crypto-js**: Mock encryption
 - **File System**: Mock fs operations

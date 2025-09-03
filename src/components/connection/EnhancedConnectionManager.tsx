@@ -386,11 +386,17 @@ export function EnhancedConnectionManager({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            role="searchbox"
+            aria-label="Search connection profiles"
+            aria-describedby="search-help-text"
             placeholder="Search profiles..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
+          <div id="search-help-text" className="sr-only">
+            Search through your connection profiles by name, hostname, username, or tags.
+          </div>
         </div>
 
         <Tabs defaultValue="all" className="w-full">

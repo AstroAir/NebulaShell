@@ -90,6 +90,23 @@
   margin-top: 0.5rem;
 }
 
+.themePreviewTerminal {
+  background-color: var(--theme-background);
+  color: var(--theme-foreground);
+  padding: 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.themePreviewBlue {
+  color: var(--theme-blue);
+}
+
+.themePreviewGreen {
+  color: var(--theme-green);
+}
+
 .colorSwatch {
   width: 1rem;
   height: 1rem;

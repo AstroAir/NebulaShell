@@ -100,10 +100,11 @@ export class MockSocket {
 
   // Simulate server events
   simulateServerEvent(event: string, data: any) {
-    // Only emit if connected to prevent memory leaks
-    if (this.connected) {
-      this.emit(event, data)
-    }
+    console.log(`MockSocket.simulateServerEvent: ${event}`, data, 'connected:', this.connected)
+    // Always emit server events for testing purposes
+    // The connection check is mainly for client-initiated events
+    console.log(`MockSocket.emit: ${event}`, data)
+    this.emit(event, data)
   }
 }
 

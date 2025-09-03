@@ -669,6 +669,18 @@ export function CollaborationPanel({
           </div>
         )}
       </CardContent>
+
+      {/* Status region for screen reader announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {connectionStatus === 'connected' && `Connected to session ${sessionId} with ${connectedUsers.length} users`}
+        {connectionStatus === 'reconnecting' && 'Reconnecting to collaboration session...'}
+        {connectionStatus === 'disconnected' && 'Disconnected from collaboration session'}
+      </div>
     </Card>
   );
 }

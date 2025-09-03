@@ -17,13 +17,7 @@ console.warn = (...args) => {
   originalWarn.call(console, ...args);
 };
 
-// Mock performance.now for consistent timing in tests
-global.performance = global.performance || {};
-let mockTime = 0;
-global.performance.now = jest.fn(() => {
-  mockTime += 10; // Simulate 10ms increments for consistent timing
-  return mockTime;
-});
+// Performance.now mock is handled in jest.setup.js to avoid conflicts
 
 // Mock crypto for ID generation
 global.crypto = global.crypto || {};

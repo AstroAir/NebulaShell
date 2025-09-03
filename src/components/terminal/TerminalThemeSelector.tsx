@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { terminalThemeManager, TerminalTheme } from '@/lib/terminal-themes';
 import { Button } from '../ui/button';
 import styles from './TerminalThemeSelector.module.css';
@@ -9,6 +9,30 @@ interface TerminalThemeSelectorProps {
 }
 
 type ThemeCategory = 'all' | 'dark' | 'light' | 'high-contrast' | 'custom';
+
+// Separate component for theme preview to handle dynamic CSS custom properties
+const ThemePreview: React.FC<{ theme: TerminalTheme }> = ({ theme }) => {
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (previewRef.current) {
+      const element = previewRef.current;
+      element.style.setProperty('--theme-background', theme.colors.background);
+      element.style.setProperty('--theme-foreground', theme.colors.foreground);
+      element.style.setProperty('--theme-blue', theme.colors.blue);
+      element.style.setProperty('--theme-green', theme.colors.green);
+    }
+  }, [theme.colors]);
+
+  return (
+    <div ref={previewRef} className={styles.themePreviewTerminal}>
+      <div>$ ls -la</div>
+      <div className={styles.themePreviewBlue}>drwxr-xr-x</div>
+      <div className={styles.themePreviewGreen}>-rw-r--r--</div>
+    </div>
+  );
+};
+
 export const TerminalThemeSelector: React.FC<TerminalThemeSelectorProps> = ({
   currentTheme,
   onThemeChange,
@@ -177,21 +201,7 @@ export const TerminalThemeSelector: React.FC<TerminalThemeSelectorProps> = ({
         </div>
 
         {/* Theme Preview - using actual theme colors */}
-        <div
-          className={styles.themePreview}
-          style={{
-            backgroundColor: theme.colors.background,
-            color: theme.colors.foreground,
-            padding: '8px',
-            borderRadius: '4px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-          }}
-        >
-          <div>$ ls -la</div>
-          <div style={{ color: theme.colors.blue }}>drwxr-xr-x</div>
-          <div style={{ color: theme.colors.green }}>-rw-r--r--</div>
-        </div>
+        <ThemePreview theme={theme} />
 
         </div>
 

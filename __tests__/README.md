@@ -17,7 +17,6 @@ __tests__/
 ├── lib/                  # Utility library tests
 │   ├── terminal-themes.test.ts
 │   ├── terminal-history-enhanced.test.ts
-│   ├── file-transfer-manager.test.ts
 │   └── connection-profiles-enhanced.test.ts
 ├── api/                  # Backend API tests
 │   ├── file-transfer.test.ts

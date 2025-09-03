@@ -1,4 +1,4 @@
-// Mock SSH connections for testing
+// Comprehensive SSH mocking for testing
 import { EventEmitter } from 'events'
 
 export class MockSSHConnection extends EventEmitter {
@@ -6,6 +6,11 @@ export class MockSSHConnection extends EventEmitter {
   public config: any = {}
 
   async connect(config: any) {
+    // Simulate different connection scenarios based on hostname
+    if (config.host === 'nonexistent.example.com' || config.hostname === 'nonexistent.example.com') {
+      throw new Error('Connection failed');
+    }
+
     this.config = config
     this.connected = true
     this.emit('ready')
@@ -13,11 +18,17 @@ export class MockSSHConnection extends EventEmitter {
   }
 
   async requestShell() {
+    if (!this.connected) {
+      throw new Error('Not connected')
+    }
     const shell = new MockShell()
     return shell
   }
 
   async exec(command: string) {
+    if (!this.connected) {
+      throw new Error('Not connected')
+    }
     return {
       stdout: `Mock output for: ${command}`,
       stderr: '',
@@ -25,13 +36,51 @@ export class MockSSHConnection extends EventEmitter {
     }
   }
 
+  // SFTP operations
+  async putFile(localPath: string, remotePath: string) {
+    if (!this.connected) {
+      throw new Error('Not connected')
+    }
+    return Promise.resolve()
+  }
+
+  async getFile(remotePath: string, localPath: string) {
+    if (!this.connected) {
+      throw new Error('Not connected')
+    }
+    return Promise.resolve()
+  }
+
+  async putDirectory(localPath: string, remotePath: string) {
+    if (!this.connected) {
+      throw new Error('Not connected')
+    }
+    return Promise.resolve()
+  }
+
+  async getDirectory(remotePath: string, localPath: string) {
+    if (!this.connected) {
+      throw new Error('Not connected')
+    }
+    return Promise.resolve()
+  }
+
   dispose() {
     this.connected = false
     this.emit('close')
+    return Promise.resolve()
   }
 
   end() {
     this.dispose()
+  }
+
+  // Connection property for compatibility
+  get connection() {
+    return {
+      on: jest.fn(),
+      end: jest.fn(),
+    }
   }
 }
 
@@ -70,12 +119,45 @@ export class MockShell extends EventEmitter {
   }
 }
 
-export const mockNodeSSH = jest.fn(() => new MockSSHConnection())
+// Create a comprehensive NodeSSH mock that includes all methods
+export const createMockNodeSSH = () => jest.fn().mockImplementation(() => new MockSSHConnection())
 
+// Individual mock functions for granular testing
+export const mockConnect = jest.fn().mockImplementation(async (config: any) => {
+  if (config.host === 'nonexistent.example.com' || config.hostname === 'nonexistent.example.com') {
+    throw new Error('Connection failed');
+  }
+  return Promise.resolve();
+});
+
+export const mockDispose = jest.fn().mockResolvedValue(undefined);
+
+export const mockRequestShell = jest.fn().mockResolvedValue({
+  write: jest.fn(),
+  end: jest.fn(),
+  on: jest.fn(),
+  removeListener: jest.fn(),
+});
+
+export const mockExec = jest.fn().mockResolvedValue({
+  stdout: 'mock output',
+  stderr: '',
+  code: 0
+});
+
+// Main NodeSSH mock factory
+export const mockNodeSSH = createMockNodeSSH()
+
+// Default export for compatibility
 const mockSSH = {
   NodeSSH: mockNodeSSH,
   MockSSHConnection,
   MockShell,
+  createMockNodeSSH,
+  mockConnect,
+  mockDispose,
+  mockRequestShell,
+  mockExec,
 }
 
 export default mockSSH;

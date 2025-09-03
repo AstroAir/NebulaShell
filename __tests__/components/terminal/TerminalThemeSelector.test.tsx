@@ -287,13 +287,18 @@ describe('TerminalThemeSelector', () => {
       expect(previewElements.length).toBeGreaterThan(0);
     });
 
-    it('applies theme colors to preview', () => {
+    it('applies theme colors to preview', async () => {
       render(<TerminalThemeSelector {...defaultProps} />);
 
       const preview = screen.getAllByText('$ ls -la')[0].parentElement;
-      expect(preview).toHaveStyle({
-        backgroundColor: '#000000',
-        color: '#ffffff',
+
+      // Wait for the useEffect to set the CSS custom properties
+      // The colors should match the first theme returned by getAllThemes()
+      await waitFor(() => {
+        expect(preview).toHaveStyle('--theme-background: #000000');
+        expect(preview).toHaveStyle('--theme-foreground: #ffffff');
+        expect(preview).toHaveStyle('--theme-blue: #0000ee');
+        expect(preview).toHaveStyle('--theme-green: #00cd00');
       });
     });
 
