@@ -1,0 +1,151 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "WebTerminal Pro",
+  "version": "1.0.0",
+  "identifier": "com.webterminal.pro",
+  "build": {
+    "frontendDist": "../out",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "pnpm dev:frontend",
+    "beforeBuildCommand": "pnpm build:frontend"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "WebTerminal Pro",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1000,
+        "minHeight": 700,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: ws: wss: http://localhost:* https://localhost:*"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "WebTerminal Pro Team",
+    "category": "DeveloperTool",
+    "shortDescription": "Professional SSH Terminal & File Manager",
+    "longDescription": "WebTerminal Pro is a professional-grade SSH terminal client with advanced features including session recording, file transfer management, security monitoring, and performance optimization.",
+    "copyright": "Copyright © 2024 WebTerminal Pro Team. All rights reserved.",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
+    "homepage": "https://webterminal.pro",
+
+
+    "createUpdaterArtifacts": true,
+    "resources": [],
+    "externalBin": [],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": null,
+      "tsp": false,
+      "wix": {
+        "language": ["en-US"],
+        "template": null,
+        "fragmentPaths": [],
+        "componentRefs": [],
+        "featureRefs": [],
+        "mergeRefs": [],
+        "enableElevatedUpdateTask": false,
+        "bannerPath": null,
+        "dialogImagePath": null,
+        "fipsCompliant": false
+      },
+      "nsis": {
+        "template": null,
+        "headerImage": null,
+        "sidebarImage": null,
+        "installerIcon": null,
+        "installMode": "currentUser",
+        "languages": ["English"],
+        "displayLanguageSelector": false,
+        "customLanguageFiles": {},
+        "compression": "lzma"
+      },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "allowDowngrades": false
+    },
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.13",
+      "exceptionDomain": null,
+      "signingIdentity": null,
+      "providerShortName": null,
+      "entitlements": null,
+      "dmg": {
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        },
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        },
+        "background": null
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.0-37",
+          "libgtk-3-0",
+          "libayatana-appindicator3-1"
+        ],
+        "files": {},
+        "desktopTemplate": null,
+        "section": "utils",
+        "priority": "optional",
+        "changelog": null
+      },
+      "appimage": {
+        "bundleMediaFramework": false,
+        "files": {}
+      },
+      "rpm": {
+        "epoch": 0,
+        "files": {},
+        "release": "1",
+        "desktopTemplate": null
+      }
+    }
+  },
+  "plugins": {
+    "fs": {
+      "all": false,
+      "scope": ["C:\\Users\\qwdma\\.ssh\\**", "C:\\Users\\qwdma\\Downloads\\**", "/webterminal-pro/**"]
+    },
+    "shell": {
+      "all": false,
+      "open": true
+    },
+    "updater": {
+      "active": true,
+      "endpoints": [],
+      "dialog": true,
+      "pubkey": "",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

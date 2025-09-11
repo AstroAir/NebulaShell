@@ -206,13 +206,25 @@ describe('SSHConnectionForm', () => {
     await user.type(screen.getByPlaceholderText('Enter password'), 'testpass')
 
     const connectButton = screen.getByRole('button', { name: /connect/i })
+
+    // Click connect and immediately check if form gets disabled
     await user.click(connectButton)
 
-    // Simulate connecting state
+    // The form should be disabled immediately after clicking connect
+    // because isSubmitting is set to true and connect() sets status to 'connecting'
+    await waitFor(() => {
+      expect(screen.getByLabelText(/hostname/i)).toBeDisabled()
+      expect(screen.getByLabelText(/username/i)).toBeDisabled()
+      expect(screen.getByPlaceholderText('Enter password')).toBeDisabled()
+      expect(connectButton).toBeDisabled()
+    })
+
+    // Simulate connecting state from server (this should maintain the disabled state)
     await act(async () => {
       mockSocket.simulateServerEvent('ssh_connecting', {})
     })
 
+    // Verify all form fields are still disabled
     await waitFor(() => {
       expect(screen.getByLabelText(/hostname/i)).toBeDisabled()
       expect(screen.getByLabelText(/username/i)).toBeDisabled()

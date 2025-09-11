@@ -10,8 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
+
 import { 
   Save, 
   FolderOpen, 
@@ -21,13 +20,10 @@ import {
   Download, 
   Upload,
   Play,
-  Pause,
   RotateCcw,
   Clock,
   Server,
   User,
-  Tag,
-  Settings,
   Plus
 } from 'lucide-react';
 import { terminalSessionPersistence, PersistedSession, SessionRestoreOptions } from '@/lib/terminal-session-persistence';
@@ -80,7 +76,7 @@ export function SessionPersistenceManager({
       username: 'user',
     };
 
-    const sessionId = terminalSessionPersistence.createSession(newSessionName, mockConfig);
+    terminalSessionPersistence.createSession(newSessionName, mockConfig);
     onSessionCreate?.(newSessionName, mockConfig);
     
     setNewSessionName('');
@@ -148,7 +144,7 @@ export function SessionPersistenceManager({
         } else {
           announce('Failed to import sessions', 'assertive');
         }
-      } catch (error) {
+      } catch {
         announce('Invalid session file format', 'assertive');
       }
     };
@@ -481,7 +477,7 @@ export function SessionPersistenceManager({
             <DialogHeader>
               <DialogTitle>Restore Session</DialogTitle>
               <DialogDescription>
-                Choose what to restore from "{selectedSession?.name}"
+                Choose what to restore from &quot;{selectedSession?.name}&quot;
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">

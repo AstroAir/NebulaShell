@@ -16,7 +16,6 @@ import { POST as uploadPOST } from '@/app/api/file-transfer/upload/route';
 import { POST as downloadPOST } from '@/app/api/file-transfer/download/route';
 import { POST as listPOST, GET as listGET } from '@/app/api/file-transfer/list/route';
 import fs from 'fs';
-import path from 'path';
 
 // Mock fs module
 jest.mock('fs', () => ({
@@ -38,7 +37,6 @@ jest.mock('fs/promises', () => ({
 
 
 // Mock process.cwd() to return a valid path
-const originalCwd = process.cwd;
 process.cwd = jest.fn(() => '/mock/project/root');
 
 const mockFs = fs as jest.Mocked<typeof fs>;
@@ -140,7 +138,7 @@ describe('File Transfer API', () => {
       mockFsPromises.writeFile.mockResolvedValue(undefined);
 
       const request = createMockRequest(formData);
-      const response = await uploadPOST(request);
+      await uploadPOST(request);
 
       // Debug: Check what mkdir was actually called with
       console.log('mkdir calls:', mockFsPromises.mkdir.mock.calls);

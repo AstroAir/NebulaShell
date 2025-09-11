@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState, memo } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTerminal } from './TerminalContext';
 import { Card } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { terminalHistoryManager } from '@/lib/terminal-history-manager';
 import { terminalCommandProcessor } from '@/lib/terminal-command-processor';
 import { terminalAutoCompleteManager } from '@/lib/terminal-autocomplete-manager';
@@ -884,17 +884,20 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
 
   return (
     <div className="relative">
-      <Card className={`p-0 overflow-hidden ${className}`}>
+      <Card className={`card-elevated p-0 overflow-hidden transition-all duration-300 ${className}`}>
         <div
           ref={terminalRef}
           data-testid="terminal-container"
           role="region"
           aria-label="Terminal"
-          className="w-full h-full min-h-[400px] bg-[#1a1a1a]"
+          className="w-full h-full min-h-[400px] bg-gradient-to-br from-terminal-background to-terminal-background/95 relative"
           style={{
             fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "SF Mono", Monaco, Consolas, "Ubuntu Mono", monospace'
           }}
-        />
+        >
+          {/* Subtle overlay for better text contrast */}
+          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-background/5 pointer-events-none"></div>
+        </div>
       </Card>
 
       {/* Auto-completion dropdown */}

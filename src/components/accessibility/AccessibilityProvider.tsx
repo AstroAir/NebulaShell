@@ -137,7 +137,7 @@ export function AccessibilityProvider({ children, maxAnnouncements = 10 }: Acces
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handleMouseDown);
     };
-  }, []);
+  }, [isTestEnvironment]);
 
   // Create ARIA live regions immediately
   useEffect(() => {

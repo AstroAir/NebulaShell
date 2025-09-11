@@ -1,5 +1,5 @@
 import { createServer } from 'http'
-import { io as Client, Socket as ClientSocket } from 'socket.io-client'
+import { Socket as ClientSocket } from 'socket.io-client'
 import { sshManager } from '@/lib/ssh-manager'
 import { SSHConnectionConfig } from '@/types/ssh'
 import { WebSocketServer } from '@/lib/websocket-server'

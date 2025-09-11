@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,19 +9,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
+
 import { 
   Search, 
   History, 
   Star, 
   StarOff, 
-  Copy, 
-  Tag, 
+  Copy,
   Calendar,
   TrendingUp,
   Filter,
   Download,
-  Trash2,
   Clock,
   Terminal,
   CheckCircle,
@@ -47,15 +45,7 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
 
   const debouncedQuery = useDebounce(searchQuery, 300);
 
-  useEffect(() => {
-    performSearch();
-  }, [debouncedQuery, selectedFilters]);
-
-  useEffect(() => {
-    setStats(enhancedTerminalHistoryManager.getStats());
-  }, [searchResults]);
-
-  const performSearch = () => {
+  const performSearch = useCallback(() => {
     try {
       const options: HistorySearchOptions = {
         query: debouncedQuery || undefined,
@@ -74,7 +64,16 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
       setSearchResults([]);
       announce('Search failed. Please try again.');
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, selectedFilters]); // Intentionally omitting 'announce' to prevent infinite loop
+
+  useEffect(() => {
+    performSearch();
+  }, [debouncedQuery, selectedFilters, performSearch]);
+
+  useEffect(() => {
+    setStats(enhancedTerminalHistoryManager.getStats());
+  }, [searchResults]);
 
   const handleCommandSelect = (command: string) => {
     onCommandSelect?.(command);
@@ -150,7 +149,7 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
 
   const mostUsedCommands = useMemo(() => {
     return enhancedTerminalHistoryManager.getMostUsedCommands(10);
-  }, [searchResults]);
+  }, []);
 
   return (
     <Card className={cn('w-full', className)}>

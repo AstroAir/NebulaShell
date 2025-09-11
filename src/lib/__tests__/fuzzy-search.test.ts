@@ -1,9 +1,6 @@
 import {
   fuzzySearch,
-  fuzzySearchArray,
-  highlightMatches,
-  FuzzySearchOptions,
-  FuzzySearchResult,
+  fuzzySearchArray
 } from '../fuzzy-search';
 
 describe('Fuzzy Search', () => {

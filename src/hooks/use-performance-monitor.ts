@@ -10,11 +10,7 @@ interface PerformanceMetrics {
   lastRenderTime: number;
 }
 
-interface LayoutShiftEntry {
-  value: number;
-  sources: any[];
-  hadRecentInput: boolean;
-}
+
 
 /**
  * Hook for monitoring component performance and layout shifts
@@ -47,7 +43,7 @@ export function usePerformanceMonitor(componentName: string) {
     if (process.env.NODE_ENV === 'development' && renderTime > 16) {
       console.warn(`Slow render detected in ${componentName}: ${renderTime}ms`);
     }
-  });
+  }, [componentName]);
 
   // Monitor layout shifts
   useEffect(() => {

@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
 
+// Required for static export
+export const dynamic = 'force-static';
+
 // Types for collaboration
 interface CollaborationUser {
   id: string;
@@ -56,30 +59,47 @@ let wss: WebSocketServer | null = null;
 function initializeWebSocketServer() {
   if (wss) return wss;
 
-  wss = new WebSocketServer({ 
-    port: 8080,
-    path: '/api/collaboration/websocket'
-  });
+  // Don't initialize during build process
+  if (process.env.NODE_ENV === 'production' && !process.env.RUNTIME) {
+    return null;
+  }
 
-  wss.on('connection', (ws: WebSocket, request: IncomingMessage) => {
-    const url = new URL(request.url || '', `http://${request.headers.host}`);
-    const sessionId = url.searchParams.get('sessionId');
-    const userId = url.searchParams.get('userId');
+  try {
+    wss = new WebSocketServer({
+      port: 8080,
+      path: '/api/collaboration/websocket'
+    });
 
-    if (!sessionId || !userId) {
-      ws.close(1008, 'Missing sessionId or userId');
-      return;
-    }
+    wss.on('connection', (ws: WebSocket, request: IncomingMessage) => {
+      const url = new URL(request.url || '', `http://${request.headers.host}`);
+      const sessionId = url.searchParams.get('sessionId');
+      const userId = url.searchParams.get('userId');
 
-    handleUserConnection(ws, sessionId, userId);
-  });
+      if (!sessionId || !userId) {
+        ws.close(1008, 'Missing sessionId or userId');
+        return;
+      }
 
-  wss.on('error', (error) => {
-    console.error('WebSocket server error:', error);
-  });
+      handleUserConnection(ws, sessionId, userId);
+    });
 
-  console.log('WebSocket server initialized on port 8080');
-  return wss;
+    wss.on('error', (error) => {
+      console.error('WebSocket server error:', error);
+      // Don't crash the process during build
+      if (error.message.includes('EADDRINUSE')) {
+        console.warn('Port 8080 already in use, WebSocket server not started');
+        wss = null;
+        return null;
+      }
+    });
+
+    console.log('WebSocket server initialized on port 8080');
+    return wss;
+  } catch (error) {
+    console.error('Failed to initialize WebSocket server:', error);
+    wss = null;
+    return null;
+  }
 }
 
 function handleUserConnection(ws: WebSocket, sessionId: string, userId: string) {
@@ -321,24 +341,39 @@ function generateUserColor(userId: string): string {
   return colors[hash % colors.length];
 }
 
-// Cleanup inactive sessions periodically
-setInterval(() => {
-  const now = Date.now();
-  const maxInactiveTime = 24 * 60 * 60 * 1000; // 24 hours
+// Cleanup inactive sessions periodically - only in runtime
+let cleanupInterval: NodeJS.Timeout | null = null;
 
-  sessions.forEach((session, sessionId) => {
-    if (now - session.lastActivity > maxInactiveTime) {
-      sessions.delete(sessionId);
-      console.log(`Cleaned up inactive session: ${sessionId}`);
-    }
-  });
-}, 60 * 60 * 1000); // Check every hour
+function startCleanupInterval() {
+  if (cleanupInterval) return;
 
-// Initialize WebSocket server
-initializeWebSocketServer();
+  cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    const maxInactiveTime = 24 * 60 * 60 * 1000; // 24 hours
+
+    sessions.forEach((session, sessionId) => {
+      if (now - session.lastActivity > maxInactiveTime) {
+        sessions.delete(sessionId);
+        console.log(`Cleaned up inactive session: ${sessionId}`);
+      }
+    });
+  }, 60 * 60 * 1000); // Check every hour
+}
+
+// Lazy initialization function
+function ensureWebSocketServer() {
+  if (!wss && typeof window === 'undefined') {
+    initializeWebSocketServer();
+    startCleanupInterval();
+  }
+  return wss;
+}
 
 // Next.js API route handler (for HTTP requests)
-export async function GET(request: NextRequest) {
+export async function GET() {
+  // Ensure WebSocket server is initialized when accessed
+  ensureWebSocketServer();
+
   return new Response('WebSocket endpoint - use WebSocket connection', {
     status: 200,
     headers: {
@@ -349,8 +384,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Ensure WebSocket server is initialized when accessed
+    ensureWebSocketServer();
+
     const body = await request.json();
-    const { action, sessionId, userId } = body;
+    const { action, sessionId } = body;
 
     switch (action) {
       case 'get-session':

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,22 +12,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Users, 
-  Share2, 
-  Copy, 
-  UserPlus, 
-  UserMinus, 
-  Settings, 
-  Eye, 
-  EyeOff,
+import {
+  Users,
+  Share2,
+  Copy,
+  UserPlus,
+  UserMinus,
   Wifi,
   WifiOff,
   Crown,
   Clock,
-  MousePointer,
-  Terminal,
-  MessageSquare
+  MousePointer
 } from 'lucide-react';
 import { collaborationManager, CollaborationUser, CollaborationSession } from '@/lib/collaboration/websocket-manager';
 import { cn } from '@/lib/utils';
@@ -60,8 +55,7 @@ export function CollaborationPanel({
   onSessionLeave,
   onSessionShare,
   onSessionEnd,
-  onUserJoin,
-  onUserLeave,
+
   className
 }: CollaborationPanelProps) {
   const [isConnected, setIsConnected] = useState(!!sessionId || connectionStatus === 'connected');
@@ -134,55 +128,36 @@ export function CollaborationPanel({
     }
   }, [sessionId, currentUser]);
 
-  useEffect(() => {
-    // Set up collaboration manager event listeners
-    collaborationManager.on('connected', handleConnected);
-    collaborationManager.on('disconnected', handleDisconnected);
-    collaborationManager.on('userJoined', handleUserJoined);
-    collaborationManager.on('userLeft', handleUserLeft);
-    collaborationManager.on('userUpdated', handleUserUpdated);
-    collaborationManager.on('error', handleError);
-
-    return () => {
-      collaborationManager.off('connected', handleConnected);
-      collaborationManager.off('disconnected', handleDisconnected);
-      collaborationManager.off('userJoined', handleUserJoined);
-      collaborationManager.off('userLeft', handleUserLeft);
-      collaborationManager.off('userUpdated', handleUserUpdated);
-      collaborationManager.off('error', handleError);
-    };
-  }, []);
-
-  const handleConnected = (data: any) => {
+  const handleConnected = useCallback(() => {
     setIsConnected(true);
     setCurrentSession(collaborationManager.getCurrentSession());
     setConnectedUsers(collaborationManager.getConnectedUsers());
     announce('Connected to collaboration session');
-  };
+  }, [announce]);
 
-  const handleDisconnected = (data: any) => {
+  const handleDisconnected = useCallback(() => {
     setIsConnected(false);
     announce('Disconnected from collaboration session');
-  };
+  }, [announce]);
 
-  const handleUserJoined = (data: { user: CollaborationUser }) => {
+  const handleUserJoined = useCallback((data: { user: CollaborationUser }) => {
     setConnectedUsers(collaborationManager.getConnectedUsers());
     announce(`${data.user.name} joined the session`);
-  };
+  }, [announce]);
 
-  const handleUserLeft = (data: { userId: string }) => {
+  const handleUserLeft = useCallback(() => {
     setConnectedUsers(collaborationManager.getConnectedUsers());
     announce('A user left the session');
-  };
+  }, [announce]);
 
-  const handleUserUpdated = (data: { user: CollaborationUser }) => {
+  const handleUserUpdated = useCallback(() => {
     setConnectedUsers(collaborationManager.getConnectedUsers());
-  };
+  }, []);
 
-  const handleError = (error: any) => {
+  const handleError = useCallback((error: any) => {
     console.error('Collaboration error:', error);
     announce('Collaboration error occurred', 'assertive');
-  };
+  }, [announce]);
 
   const handleCreateSession = async () => {
     if (!newSessionName.trim() || !currentUser) return;
@@ -225,7 +200,7 @@ export function CollaborationPanel({
     try {
       await navigator.clipboard.writeText(shareUrl);
       announce('Share URL copied to clipboard');
-    } catch (error) {
+    } catch {
       announce('Failed to copy share URL', 'assertive');
     }
   };
@@ -258,6 +233,25 @@ export function CollaborationPanel({
     }
     return `${minutes}m`;
   };
+
+  useEffect(() => {
+    // Set up collaboration manager event listeners
+    collaborationManager.on('connected', handleConnected);
+    collaborationManager.on('disconnected', handleDisconnected);
+    collaborationManager.on('userJoined', handleUserJoined);
+    collaborationManager.on('userLeft', handleUserLeft);
+    collaborationManager.on('userUpdated', handleUserUpdated);
+    collaborationManager.on('error', handleError);
+
+    return () => {
+      collaborationManager.off('connected', handleConnected);
+      collaborationManager.off('disconnected', handleDisconnected);
+      collaborationManager.off('userJoined', handleUserJoined);
+      collaborationManager.off('userLeft', handleUserLeft);
+      collaborationManager.off('userUpdated', handleUserUpdated);
+      collaborationManager.off('error', handleError);
+    };
+  }, [handleConnected, handleDisconnected, handleUserJoined, handleUserLeft, handleUserUpdated, handleError]);
 
   return (
     <Card className={cn('w-full', className)}>

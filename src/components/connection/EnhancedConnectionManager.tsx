@@ -4,14 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Server, 
@@ -29,13 +27,9 @@ import {
   Download,
   Upload,
   Zap,
-  Settings,
   ChevronDown,
   ChevronRight,
-  Globe,
-  Shield,
-  Terminal,
-  Wifi
+  Shield
 } from 'lucide-react';
 import { enhancedConnectionProfileManager, ConnectionProfile, ConnectionGroup, ConnectionTemplate } from '@/lib/connection-profiles-enhanced';
 import { cn } from '@/lib/utils';
@@ -51,8 +45,7 @@ interface EnhancedConnectionManagerProps {
 
 export function EnhancedConnectionManager({
   onConnect,
-  onProfileCreate,
-  onProfileUpdate,
+
   onProfileDelete,
   className
 }: EnhancedConnectionManagerProps) {
@@ -60,7 +53,7 @@ export function EnhancedConnectionManager({
   const [groups, setGroups] = useState<ConnectionGroup[]>([]);
   const [templates, setTemplates] = useState<ConnectionTemplate[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProfile, setSelectedProfile] = useState<ConnectionProfile | null>(null);
+
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -129,7 +122,7 @@ export function EnhancedConnectionManager({
         } else {
           announce('Failed to import profiles', 'assertive');
         }
-      } catch (error) {
+      } catch {
         announce('Invalid profile file format', 'assertive');
       }
     };
@@ -251,7 +244,7 @@ export function EnhancedConnectionManager({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              setSelectedProfile(profile);
+              // TODO: Implement profile editing
             }}
             className="h-8 w-8 p-0"
           >

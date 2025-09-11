@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, user, createMockTerminalTheme } from '../../utils/test-utils';
+import { render, screen, waitFor, user, createMockTerminalTheme } from '../../utils/test-utils';
 import { TerminalThemeSelector } from '@/components/terminal/TerminalThemeSelector';
 
 // Mock the terminal theme manager

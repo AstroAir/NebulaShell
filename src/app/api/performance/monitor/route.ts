@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 
+// Required for static export
+export const dynamic = 'force-static';
+
 interface PerformanceMetrics {
   sessionId?: string;
   clientInfo: {

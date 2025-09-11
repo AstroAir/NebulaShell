@@ -71,7 +71,6 @@ describe('SecurityManager', () => {
     });
 
     it('should decrypt text successfully', () => {
-      const plaintext = 'sensitive-password';
       const encrypted = 'mock-iv-hex:encrypted-part-final-part';
       
       const decrypted = securityManager.decrypt(encrypted);

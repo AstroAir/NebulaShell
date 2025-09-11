@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { render, user, createMockHistoryEntry } from '../../utils/test-utils';
 import { CommandHistorySearch } from '@/components/terminal/CommandHistorySearch';
 import { enhancedTerminalHistoryManager } from '@/lib/terminal-history-enhanced';

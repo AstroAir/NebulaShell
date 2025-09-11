@@ -78,12 +78,7 @@ const measurePerformance = (name: string, fn: () => void) => {
   return duration;
 }
 
-// Helper function to create delays
-const delay = (ms: number) => {
-  return new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), ms)
-  })
-}
+
 
 const TerminalWithProvider = ({ sessionId }: { sessionId?: string } = {}) => (
   <TerminalProvider>

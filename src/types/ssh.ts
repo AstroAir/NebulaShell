@@ -51,3 +51,18 @@ export interface FileTransferProgress {
   total: number;
   percentage: number;
 }
+
+export interface SftpFileInfo {
+  name: string;
+  path: string;
+  size: number;
+  is_directory: boolean;
+  modified?: number;
+  permissions?: string;
+}
+
+export interface AutocompleteSuggestion {
+  text: string;
+  description?: string;
+  suggestion_type: 'Command' | 'Directory' | 'File' | 'Option';
+}

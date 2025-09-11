@@ -156,10 +156,8 @@ describe('TerminalAliasesManager', () => {
   })
 
   describe('Alias Deletion', () => {
-    let testAlias: CommandAlias
-
     beforeEach(() => {
-      testAlias = manager.createAlias('test', 'echo test')
+      manager.createAlias('test', 'echo test')
     })
 
     it('should delete alias successfully', () => {

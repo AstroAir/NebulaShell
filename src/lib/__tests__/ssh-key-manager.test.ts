@@ -9,7 +9,7 @@ const mockKeyPair = {
 jest.mock('node-forge', () => ({
   pki: {
     rsa: {
-      generateKeyPair: jest.fn((options) => mockKeyPair),
+      generateKeyPair: jest.fn(() => mockKeyPair),
     },
     privateKeyToPem: jest.fn(() => '-----BEGIN RSA PRIVATE KEY-----\nMOCK_PRIVATE_KEY\n-----END RSA PRIVATE KEY-----'),
     publicKeyToPem: jest.fn(() => '-----BEGIN PUBLIC KEY-----\nMOCK_PUBLIC_KEY\n-----END PUBLIC KEY-----'),

@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Configure for static export (required for Tauri)
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
+
+  // Skip API routes during build since they won't be used in Tauri
+  async generateBuildId() {
+    return 'tauri-build';
+  },
+
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Handle native modules for server-side rendering

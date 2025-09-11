@@ -3,6 +3,9 @@ import { sshManager } from '@/lib/ssh-manager';
 import { fuzzySearchArray } from '@/lib/fuzzy-search';
 import { logger } from '@/lib/logger';
 
+// Required for static export
+export const dynamic = 'force-static';
+
 interface AutoCompleteRequest {
   sessionId: string;
   input: string;

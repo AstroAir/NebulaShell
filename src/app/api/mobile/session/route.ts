@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sshManager } from '@/lib/ssh-manager';
 import { logger } from '@/lib/logger';
 
+// Required for static export
+export const dynamic = 'force-static';
+
 interface MobileSessionRequest {
   action: 'optimize' | 'status' | 'settings' | 'cleanup';
   sessionId?: string;

@@ -502,7 +502,7 @@ describe('TerminalSessionPersistence', () => {
 
       // Create sessions with different last accessed times
       const session1 = manager.createSession('Old Session', { hostname: 'old.com', port: 22, username: 'user' });
-      const session2 = manager.createSession('Recent Session', { hostname: 'recent.com', port: 22, username: 'user' });
+      manager.createSession('Recent Session', { hostname: 'recent.com', port: 22, username: 'user' });
 
       // Make session1 older
       manager.updateSession(session1, {

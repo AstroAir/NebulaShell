@@ -37,28 +37,32 @@ export class MockSSHConnection extends EventEmitter {
   }
 
   // SFTP operations
-  async putFile(localPath: string, remotePath: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async putFile(..._: [string, string]) {
     if (!this.connected) {
       throw new Error('Not connected')
     }
     return Promise.resolve()
   }
 
-  async getFile(remotePath: string, localPath: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async getFile(..._: [string, string]) {
     if (!this.connected) {
       throw new Error('Not connected')
     }
     return Promise.resolve()
   }
 
-  async putDirectory(localPath: string, remotePath: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async putDirectory(..._: [string, string]) {
     if (!this.connected) {
       throw new Error('Not connected')
     }
     return Promise.resolve()
   }
 
-  async getDirectory(remotePath: string, localPath: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async getDirectory(..._: [string, string]) {
     if (!this.connected) {
       throw new Error('Not connected')
     }

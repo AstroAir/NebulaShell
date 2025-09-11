@@ -46,7 +46,7 @@ export function SSHConnectionForm({ className }: SSHConnectionFormProps) {
     },
   });
 
-  const onSubmit = async (data: SSHFormData) => {
+  const onSubmit = (data: SSHFormData) => {
     try {
       setError(null);
       setIsSubmitting(true);
@@ -81,10 +81,10 @@ export function SSHConnectionForm({ className }: SSHConnectionFormProps) {
         name: data.name || `${data.username}@${data.hostname}`,
       };
 
-      await connect(config);
+      connect(config);
+      // Don't set isSubmitting to false here - let the connection status handle it
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Connection failed');
-    } finally {
       setIsSubmitting(false);
     }
   };

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { sshManager } from '@/lib/ssh-manager';
 
+// Required for static export
+export const dynamic = 'force-static';
+
 export async function GET() {
   try {
     const sessions = sshManager.getAllSessions();

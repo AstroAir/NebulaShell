@@ -149,11 +149,9 @@ export function useContainerQuery<T extends HTMLElement = HTMLElement>(): [
  * Hook for container query breakpoint matching
  */
 export function useContainerBreakpoint(
-  breakpoint: ContainerBreakpoint,
-  containerRef?: React.RefObject<HTMLElement>
+  breakpoint: ContainerBreakpoint
 ): boolean {
-  const [internalRef, state] = useContainerQuery();
-  const ref = containerRef || internalRef;
+  const [, state] = useContainerQuery();
   
   return state.breakpoints[breakpoint];
 }

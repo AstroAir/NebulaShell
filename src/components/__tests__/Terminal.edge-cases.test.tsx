@@ -57,11 +57,7 @@ describe('Terminal Edge Cases and Error Scenarios', () => {
   // Set a global timeout for all tests in this suite
   jest.setTimeout(15000) // 15 seconds
 
-  // Helper function to get the actual mock instance used by the component
-  const getActualMockTerminal = () => {
-    const calls = TerminalConstructor.mock.results
-    return calls.length > 0 ? calls[calls.length - 1].value : mockTerminal
-  }
+
 
   beforeEach(() => {
     jest.clearAllMocks()

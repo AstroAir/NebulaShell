@@ -359,7 +359,7 @@ export const checkAccessibility = async (container: HTMLElement) => {
     const axeCore = await import('axe-core');
     const results = await axeCore.default.run(container);
     return results;
-  } catch (error) {
+  } catch {
     console.warn('axe-core not available, skipping accessibility check');
     return { violations: [] };
   }
@@ -398,7 +398,7 @@ export const waitForCondition = async (
       if (result) {
         return true;
       }
-    } catch (error) {
+    } catch {
       // Continue checking if condition throws
     }
 

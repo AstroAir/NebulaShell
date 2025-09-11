@@ -40,11 +40,11 @@ export function ResponsiveHeader({
   } = useResponsiveLayout();
 
   return (
-    <header className="border-b bg-card sticky top-0 z-40">
+    <header className="border-b bg-card/95 backdrop-blur-sm sticky top-0 z-40 shadow-sm">
       <div className="container mx-auto px-4 py-3 lg:py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between min-h-[3rem]">
           {/* Left side - Logo and mobile menu */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 lg:gap-4">
             {/* Mobile menu button */}
             {isMobile && (
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -88,11 +88,13 @@ export function ResponsiveHeader({
             )}
 
             {/* Logo */}
-            <div className="flex items-center gap-2">
-              <Monitor className="h-5 w-5 lg:h-6 lg:w-6" />
-              <h1 
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Monitor className="h-5 w-5 lg:h-6 lg:w-6 text-primary" />
+              </div>
+              <h1
                 className={cn(
-                  'font-bold text-responsive-lg',
+                  'font-bold tracking-tight',
                   isMobile ? 'text-lg' : 'text-xl lg:text-2xl'
                 )}
               >
@@ -114,7 +116,7 @@ export function ResponsiveHeader({
                 variant="ghost"
                 size="sm"
                 onClick={onToggleLayoutSettings}
-                className="touch-target"
+                className="touch-target hover:bg-accent/80 transition-colors"
                 aria-label="Toggle layout settings"
               >
                 <Layout className="h-4 w-4" />
@@ -127,7 +129,7 @@ export function ResponsiveHeader({
               variant="ghost"
               size="sm"
               onClick={onToggleSettings}
-              className="touch-target"
+              className="touch-target hover:bg-accent/80 transition-colors"
               aria-label="Toggle settings"
             >
               <Settings className="h-4 w-4" />
@@ -139,7 +141,7 @@ export function ResponsiveHeader({
               variant="ghost"
               size="sm"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="touch-target"
+              className="touch-target hover:bg-accent/80 transition-colors"
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             >
               {isFullscreen ? (

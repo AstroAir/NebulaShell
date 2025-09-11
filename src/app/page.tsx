@@ -54,26 +54,32 @@ export default function Home() {
           <SkipLinks />
           <ResponsiveLayout>
           {/* Header */}
-          <ResponsiveHeader
-            onToggleSettings={() => setShowSettings(!showSettings)}
-            onToggleLayoutSettings={() => setShowLayoutSettings(!showLayoutSettings)}
-            mobileMenuContent={<MobileNavigation activeTransfers={activeTransfers} />}
-          />
+          <div className="sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-background/70 bg-background/80 border-b">
+            <ResponsiveHeader
+              onToggleSettings={() => setShowSettings(!showSettings)}
+              onToggleLayoutSettings={() => setShowLayoutSettings(!showLayoutSettings)}
+              mobileMenuContent={<MobileNavigation activeTransfers={activeTransfers} />}
+            />
+          </div>
 
           {/* Settings Panel */}
           {showSettings && (
-            <div className="border-b bg-muted/30">
+            <div className="border-b bg-muted/30 animate-slide-down">
               <div className="container mx-auto px-4 py-4">
-                <TerminalSettingsPanel onClose={() => setShowSettings(false)} />
+                <div className="glass-morphism rounded-xl p-2">
+                  <TerminalSettingsPanel onClose={() => setShowSettings(false)} />
+                </div>
               </div>
             </div>
           )}
 
           {/* Layout Settings Panel */}
           {showLayoutSettings && (
-            <div className="border-b bg-muted/30">
+            <div className="border-b bg-muted/30 animate-slide-down">
               <div className="container mx-auto px-4 py-4">
-                <LayoutSettings onClose={() => setShowLayoutSettings(false)} />
+                <div className="glass-morphism rounded-xl p-2">
+                  <LayoutSettings onClose={() => setShowLayoutSettings(false)} />
+                </div>
               </div>
             </div>
           )}
@@ -86,7 +92,8 @@ export default function Home() {
                 defaultSidebarSize={layoutPreferences.defaultSidebarSize}
                 persistLayout={layoutPreferences.persistLayout}
                 sidebar={
-                  <div id="sidebar" className="h-full p-4" role="complementary" aria-label="Navigation and tools">
+                  <div id="sidebar" className="h-full p-2 lg:p-3 xl:p-4" role="complementary" aria-label="Navigation and tools">
+                    <div className="glass-subtle rounded-xl h-full">
                     <Tabs defaultValue="profiles" className="w-full h-full flex flex-col">
                       <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-4">
                         <TabsTrigger value="profiles" className="flex items-center gap-1 text-xs lg:text-sm">
@@ -128,6 +135,7 @@ export default function Home() {
                         </TabsContent>
                       </div>
                     </Tabs>
+                    </div>
                   </div>
                 }
                 main={
@@ -137,31 +145,33 @@ export default function Home() {
                     showBottomPanel={showBottomPanel}
                     onToggleBottomPanel={setShowBottomPanel}
                     top={
-                      <div id="terminal" role="region" aria-label="Terminal interface">
-                        <TabbedTerminal
-                          className="h-full"
-                        onToggleHelp={() => setShowKeyboardHelp(true)}
-                        onToggleSettings={() => setShowSettings(true)}
-                        onToggleLayoutSettings={() => setShowLayoutSettings(true)}
-                        onToggleFullscreen={() => {
-                          if (document.fullscreenElement) {
-                            document.exitFullscreen();
-                          } else {
-                            document.documentElement.requestFullscreen();
-                          }
-                        }}
-                        onToggleSidebar={() => {
-                          // This would be handled by the resizable layout
-                          const event = new CustomEvent('toggle-sidebar');
-                          document.dispatchEvent(event);
-                        }}
-                        />
+                      <div id="terminal" role="region" aria-label="Terminal interface" className="p-2 lg:p-3 xl:p-4">
+                        <div className="glass-subtle rounded-xl h-full">
+                          <TabbedTerminal
+                            className="h-full"
+                            onToggleHelp={() => setShowKeyboardHelp(true)}
+                            onToggleSettings={() => setShowSettings(true)}
+                            onToggleLayoutSettings={() => setShowLayoutSettings(true)}
+                            onToggleFullscreen={() => {
+                              if (document.fullscreenElement) {
+                                document.exitFullscreen();
+                              } else {
+                                document.documentElement.requestFullscreen();
+                              }
+                            }}
+                            onToggleSidebar={() => {
+                              // This would be handled by the resizable layout
+                              const event = new CustomEvent('toggle-sidebar');
+                              document.dispatchEvent(event);
+                            }}
+                          />
+                        </div>
                       </div>
                     }
                     bottom={
-                      <div className="h-full p-4">
-                        <div className="h-full bg-muted/30 rounded-lg flex items-center justify-center">
-                          <p className="text-muted-foreground">Bottom panel content (logs, output, etc.)</p>
+                      <div className="h-full p-2 lg:p-3 xl:p-4">
+                        <div className="h-full glass-subtle rounded-xl flex items-center justify-center">
+                          <p className="text-muted-foreground text-responsive-base">Bottom panel content (logs, output, etc.)</p>
                         </div>
                       </div>
                     }
@@ -171,7 +181,8 @@ export default function Home() {
             ) : (
               <ResponsiveGrid>
                 {/* Desktop Sidebar - Connection and File Management */}
-                <ResponsiveSidebar>
+                <ResponsiveSidebar className="p-2 lg:p-3 xl:p-4">
+                  <div className="glass-subtle rounded-xl">
                   <Tabs defaultValue="profiles" className="w-full">
                     <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
                       <TabsTrigger value="profiles" className="flex items-center gap-1 text-xs lg:text-sm">
@@ -211,10 +222,12 @@ export default function Home() {
                       <SessionManager />
                     </TabsContent>
                   </Tabs>
+                  </div>
                 </ResponsiveSidebar>
 
                 {/* Terminal Content */}
-                <ResponsiveContent>
+                <ResponsiveContent className="p-2 lg:p-3 xl:p-4">
+                  <div className="glass-subtle rounded-xl h-full">
                   <TabbedTerminal
                     className="h-full"
                     onToggleHelp={() => setShowKeyboardHelp(true)}
@@ -233,6 +246,7 @@ export default function Home() {
                       document.dispatchEvent(event);
                     }}
                   />
+                  </div>
                 </ResponsiveContent>
               </ResponsiveGrid>
             )}
@@ -241,9 +255,11 @@ export default function Home() {
 
           {/* Footer */}
           <ResponsiveFooter>
-            <div className="flex flex-col sm:flex-row items-center justify-between text-xs sm:text-sm text-muted-foreground gap-2">
-              <p>WebSSH Terminal - Secure SSH connections in your browser</p>
-              <p>Built with Next.js and shadcn/ui</p>
+            <div className="container mx-auto px-4 py-2">
+              <div className="glass-subtle rounded-lg flex flex-col sm:flex-row items-center justify-between text-xs sm:text-sm text-muted-foreground gap-2 px-3 py-2">
+                <p className="text-responsive-sm">WebSSH Terminal - Secure SSH connections in your browser</p>
+                <p className="text-responsive-sm">Built with Next.js and shadcn/ui</p>
+              </div>
             </div>
           </ResponsiveFooter>
         </ResponsiveLayout>

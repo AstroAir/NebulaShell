@@ -213,9 +213,7 @@ export class FileTransferManager {
     formData.append('file', transfer.file);
     formData.append('remotePath', transfer.remotePath || '~');
 
-    const startTime = Date.now();
-    let lastProgressTime = startTime;
-    let lastBytesTransferred = 0;
+
 
     try {
       const response = await fetch('/api/file-transfer/upload', {

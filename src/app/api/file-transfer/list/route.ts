@@ -3,6 +3,9 @@ import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
+// Required for static export
+export const dynamic = 'force-static';
+
 interface FileItem {
   name: string;
   path: string;
@@ -103,7 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ListRespo
       // Add basic permissions info (simplified)
       try {
         fileItem.permissions = entryStats.mode.toString(8).slice(-3);
-      } catch (error) {
+      } catch {
         // Permissions not available on all systems
       }
 
@@ -180,7 +183,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ListRespon
 }
 
 // Handle OPTIONS for CORS
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {

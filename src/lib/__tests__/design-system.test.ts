@@ -17,12 +17,7 @@ import {
   hoverStates,
   responsive,
   layout,
-  animations,
-  createComponentVariants,
-  applyVariant,
-  validateSpacing,
-  validateColor,
-  stateVariants,
+  animations
 } from '../design-system';
 
 describe('Design System', () => {

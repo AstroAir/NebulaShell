@@ -1,0 +1,153 @@
+[package]
+name = "webterminal-pro"
+version = "1.0.0"
+description = "Professional SSH Terminal & File Manager - A modern, secure SSH terminal client with advanced features"
+authors = ["WebTerminal Pro Team <team@webterminal.pro>"]
+license = "MIT"
+repository = "https://github.com/webterminal-pro/webterminal"
+homepage = "https://webterminal.pro"
+documentation = "https://docs.webterminal.pro"
+readme = "../README.md"
+keywords = ["ssh", "terminal", "file-manager", "tauri", "desktop"]
+categories = ["command-line-utilities", "network-programming", "gui"]
+edition = "2021"
+rust-version = "1.77.2"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "webterminal_pro_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+# Binary targets for different platforms
+[[bin]]
+name = "webterminal-pro"
+path = "src/main.rs"
+
+[[bin]]
+name = "test-server"
+path = "src/bin/test_server.rs"
+
+[build-dependencies]
+tauri-build = { version = "2.4.1", features = ["codegen"] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.8.5", features = [
+  "custom-protocol",
+  "devtools"
+] }
+tauri-plugin-log = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-http = "2"
+tauri-plugin-os = "2"
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
+
+# HTTP Server and WebSocket
+tokio = { version = "1.0", features = ["full"] }
+axum = { version = "0.7", features = ["ws", "macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+hyper = "1.0"
+
+# WebSocket
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+
+# SSH Client
+ssh2 = "0.9"
+libssh2-sys = "0.3"
+
+# Utilities
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+async-trait = "0.1"
+
+# File operations
+tokio-util = { version = "0.7", features = ["io"] }
+bytes = "1.0"
+tempfile = "3.8"
+base64 = "0.21"
+sha2 = "0.10"
+
+# Configuration and state management
+dashmap = "5.5"
+parking_lot = "0.12"
+
+# Logging
+env_logger = "0.10"
+
+# Platform-specific dependencies
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winuser", "processthreadsapi"] }
+
+[target.'cfg(unix)'.dependencies]
+nix = "0.27"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.25"
+objc = "0.2"
+
+# Development dependencies
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.8"
+serial_test = "3.0"
+
+# Build profiles for different targets
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = "unpacked"
+debug-assertions = true
+overflow-checks = true
+lto = false
+panic = "unwind"
+incremental = true
+codegen-units = 256
+rpath = false
+
+[profile.release]
+opt-level = 3
+debug = false
+split-debuginfo = "packed"
+debug-assertions = false
+overflow-checks = false
+lto = "thin"
+panic = "abort"
+incremental = false
+codegen-units = 1
+rpath = false
+strip = "symbols"
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+strip = "none"
+
+# Features for conditional compilation
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+devtools = ["tauri/devtools"]
+
+# Cross-compilation targets
+[package.metadata.cross.target.x86_64-pc-windows-gnu]
+pre-build = ["apt-get update && apt-get install -y mingw-w64"]
+
+[package.metadata.cross.target.x86_64-apple-darwin]
+pre-build = ["echo 'macOS cross-compilation setup'"]
+
+[package.metadata.cross.target.x86_64-unknown-linux-gnu]
+pre-build = ["apt-get update && apt-get install -y libwebkit2gtk-4.0-dev libgtk-3-dev libayatana-appindicator3-dev"]

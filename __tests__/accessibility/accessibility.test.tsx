@@ -7,7 +7,7 @@ import { CommandHistorySearch } from '@/components/terminal/CommandHistorySearch
 import { DragDropFileTransfer } from '@/components/file-transfer/DragDropFileTransfer';
 import { CollaborationPanel } from '@/components/collaboration/CollaborationPanel';
 import { EnhancedConnectionManager } from '@/components/connection/EnhancedConnectionManager';
-import { createMockTerminalTheme, createMockHistoryEntry, createMockCollaborationUser } from '../utils/test-utils';
+import { createMockCollaborationUser } from '../utils/test-utils';
 
 // Extend Jest matchers
 expect.extend(toHaveNoViolations);

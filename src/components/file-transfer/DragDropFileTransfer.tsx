@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -10,15 +10,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Upload, 
   Download, 
-  File, 
-  Folder, 
-  X, 
+  File,
+  X,
   CheckCircle, 
   AlertCircle,
   Pause,
   Play,
   RotateCcw,
-  Trash2,
   FileText,
   Image,
   Archive,
@@ -60,7 +58,6 @@ interface DragDropFileTransferProps {
 
 export function DragDropFileTransfer({
   onFileUpload,
-  onFileDownload,
   transfers = [],
   onTransferCancel,
   onTransferPause,
@@ -72,7 +69,7 @@ export function DragDropFileTransfer({
   remotePath = '~',
 }: DragDropFileTransferProps) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [dragCounter, setDragCounter] = useState(0);
+
   const [errors, setErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -81,7 +78,6 @@ export function DragDropFileTransfer({
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragCounter(prev => prev + 1);
     if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
       setIsDragOver(true);
     }
@@ -90,13 +86,7 @@ export function DragDropFileTransfer({
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragCounter(prev => {
-      const newCount = prev - 1;
-      if (newCount <= 0) {
-        setIsDragOver(false);
-      }
-      return newCount;
-    });
+    setIsDragOver(false);
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -104,7 +94,7 @@ export function DragDropFileTransfer({
     e.stopPropagation();
   }, []);
 
-  const validateFiles = (files: File[]): { valid: File[]; errors: string[] } => {
+  const validateFiles = useCallback((files: File[]): { valid: File[]; errors: string[] } => {
     const valid: File[] = [];
     const newErrors: string[] = [];
 
@@ -140,13 +130,12 @@ export function DragDropFileTransfer({
     });
 
     return { valid, errors: newErrors };
-  };
+  }, [maxFileSize, allowedTypes]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
-    setDragCounter(0);
 
     if (!e.dataTransfer?.files) {
       announce('No files detected in drop event', 'assertive');
@@ -168,7 +157,7 @@ export function DragDropFileTransfer({
     if (validationErrors.length > 0) {
       announce(`${validationErrors.length} files rejected due to validation errors`, 'assertive');
     }
-  }, [onFileUpload, remotePath, maxFileSize, allowedTypes, announce]);
+  }, [onFileUpload, remotePath, announce, validateFiles]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -210,7 +199,7 @@ export function DragDropFileTransfer({
   const getFileIcon = (fileName: string, fileType: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
     
-    if (fileType.startsWith('image/')) return <Image className="h-4 w-4" />;
+    if (fileType.startsWith('image/')) return <Image className="h-4 w-4" aria-label="Image file" />;
     if (fileType.startsWith('video/')) return <Video className="h-4 w-4" />;
     if (fileType.startsWith('audio/')) return <Music className="h-4 w-4" />;
     

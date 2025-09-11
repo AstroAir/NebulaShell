@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sshManager } from '@/lib/ssh-manager';
 
+// Required for static export
+export const dynamic = 'force-static';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

@@ -8,9 +8,11 @@ import { terminalAutoCompleteManager } from '@/lib/terminal-autocomplete-manager
 import { terminalAliasesManager } from '@/lib/terminal-aliases-manager';
 import { terminalCommandProcessor } from '@/lib/terminal-command-processor';
 import { terminalSettingsManager } from '@/lib/terminal-settings-manager';
+import { createWebSocketAdapter, WebSocketAdapter } from '@/lib/websocket-adapter';
+import { shouldUseWebSocket, shouldUseTauri } from '@/lib/backend-config';
 
 interface TerminalContextType {
-  socket: Socket | null;
+  socket: Socket | WebSocketAdapter | null;
   connectionStatus: ConnectionStatus;
   connect: (config: SSHConnectionConfig) => void;
   disconnect: () => void;
@@ -41,12 +43,12 @@ interface TerminalContextType {
 const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
 
 export function TerminalProvider({ children }: { children: React.ReactNode }) {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | WebSocketAdapter | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
     status: 'disconnected'
   });
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<Socket | WebSocketAdapter | null>(null);
 
   // Enhanced features state
   const [features, setFeatures] = useState({
@@ -58,14 +60,29 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io({
-      path: '/socket.io',
-      transports: ['websocket', 'polling']
-    });
+    console.log('TerminalContext: Initializing socket connection');
 
+    let newSocket: Socket | WebSocketAdapter;
+
+    if (shouldUseTauri()) {
+      console.log('Using Tauri adapter for desktop app');
+      newSocket = createWebSocketAdapter();
+    } else if (shouldUseWebSocket()) {
+      console.log('Using WebSocket adapter for Rust backend');
+      newSocket = createWebSocketAdapter();
+    } else {
+      console.log('Using Socket.IO for Node.js backend');
+      newSocket = io({
+        path: '/socket.io',
+        transports: ['websocket', 'polling']
+      });
+    }
+
+    console.log('TerminalContext: Created socket instance:', newSocket);
     // Set socket immediately so tests can access it
     setSocket(newSocket);
     socketRef.current = newSocket;
+    console.log('TerminalContext: Socket set in state and ref');
 
     newSocket.on('connect', () => {
       console.log('Socket connected');
@@ -77,6 +94,19 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
       setConnectionStatus({ status: 'disconnected' });
       setSessionId(null);
       // Keep the socket reference but it will show as disconnected
+    });
+
+    // Connect the socket
+    if (shouldUseTauri() || shouldUseWebSocket()) {
+      (newSocket as WebSocketAdapter).connect();
+    }
+
+    newSocket.on('ssh_connecting', (data: { sessionId?: string }) => {
+      console.log('SSH connecting:', data);
+      setConnectionStatus({
+        status: 'connecting',
+        sessionId: data.sessionId
+      });
     });
 
     newSocket.on('ssh_connected', (data: { sessionId: string; status: string }) => {
@@ -94,23 +124,42 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
       setSessionId(null);
     });
 
-    newSocket.on('ssh_error', (data: { message: string; sessionId?: string }) => {
+    newSocket.on('ssh_error', (data: { message: string; sessionId?: string; code?: string }) => {
       console.error('SSH error:', data);
-      setConnectionStatus({ 
-        status: 'error', 
-        message: data.message,
-        sessionId: data.sessionId 
-      });
+
+      // Treat session timeout and certain disconnection errors as disconnected state
+      const isDisconnectionError = data.code === 'SESSION_TIMEOUT' ||
+                                   data.message?.toLowerCase().includes('session timeout') ||
+                                   data.message?.toLowerCase().includes('connection closed') ||
+                                   data.message?.toLowerCase().includes('connection lost');
+
+      if (isDisconnectionError) {
+        setConnectionStatus({
+          status: 'disconnected',
+          message: data.message,
+          sessionId: data.sessionId
+        });
+        setSessionId(null);
+      } else {
+        setConnectionStatus({
+          status: 'error',
+          message: data.message,
+          sessionId: data.sessionId
+        });
+      }
     });
 
     return () => {
-      newSocket.close();
+      if (shouldUseTauri() || shouldUseWebSocket()) {
+        (newSocket as WebSocketAdapter).disconnect();
+      } else {
+        (newSocket as Socket).close();
+      }
     };
   }, []);
 
   const connect = (config: SSHConnectionConfig) => {
     if (!socket) {
-      console.error('Socket not connected');
       return;
     }
 

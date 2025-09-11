@@ -4,7 +4,7 @@ import { Server as NetServer } from 'http';
 import { sshManager } from '@/lib/ssh-manager';
 import { SSHConnectionConfig } from '@/types/ssh';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 // Store the Socket.IO server instance
 let io: SocketIOServer | undefined;

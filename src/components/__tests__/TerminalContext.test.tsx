@@ -197,7 +197,7 @@ describe('TerminalContext', () => {
   it('should handle SSH connection', async () => {
     // Skip the complex socket mocking and test the core functionality directly
     const mockConnect = jest.fn()
-    const mockSocket = getComponentSocket()
+
 
     // Create a controlled test component that bypasses socket connection issues
     const ControlledTestComponent = () => {
@@ -399,7 +399,7 @@ describe('TerminalContext', () => {
     const ServerDisconnectTestComponent = () => {
       const [connectionStatus, setConnectionStatus] = useState<any>({ status: 'connected' })
       const [sessionId, setSessionId] = useState<string | null>('test-session')
-      const [socketConnected, setSocketConnected] = useState(true)
+      const [socketConnected] = useState(true)
 
       // Simulate server-initiated disconnection after component mounts
       useEffect(() => {
@@ -438,9 +438,9 @@ describe('TerminalContext', () => {
 
     // Create a controlled test component for input sending
     const InputTestComponent = () => {
-      const [connectionStatus, setConnectionStatus] = useState<any>({ status: 'connected' })
-      const [sessionId, setSessionId] = useState<string | null>('test-session')
-      const [socketConnected, setSocketConnected] = useState(true)
+      const [connectionStatus] = useState<any>({ status: 'connected' })
+      const [sessionId] = useState<string | null>('test-session')
+      const [socketConnected] = useState(true)
 
       const handleSendInput = () => {
         mockSendInput('test command\n')
@@ -479,9 +479,9 @@ describe('TerminalContext', () => {
 
     // Create a controlled test component for resize
     const ResizeTestComponent = () => {
-      const [connectionStatus, setConnectionStatus] = useState<any>({ status: 'connected' })
-      const [sessionId, setSessionId] = useState<string | null>('test-session')
-      const [socketConnected, setSocketConnected] = useState(true)
+      const [connectionStatus] = useState<any>({ status: 'connected' })
+      const [sessionId] = useState<string | null>('test-session')
+      const [socketConnected] = useState(true)
 
       const handleResize = () => {
         mockResize(100, 30)
@@ -600,10 +600,10 @@ describe('TerminalContext', () => {
 
     // Create a custom test component that doesn't create a socket
     const TestComponentWithoutSocket = () => {
-      const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
+      const [connectionStatus] = useState<ConnectionStatus>({
         status: 'disconnected'
       })
-      const [sessionId, setSessionId] = useState<string | null>(null)
+      const [sessionId] = useState<string | null>(null)
       const [features] = useState({
         historyEnabled: true,
         autoCompleteEnabled: true,

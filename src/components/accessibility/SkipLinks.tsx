@@ -42,7 +42,7 @@ export function SkipLinks({ links = defaultSkipLinks, className }: SkipLinksProp
             // Prevent layout shift
             'whitespace-nowrap'
           )}
-          onFocus={(e) => {
+          onFocus={() => {
             // Announce to screen readers
             const announcement = `Skip link activated: ${link.label}`;
             announceToScreenReader(announcement);
@@ -246,7 +246,7 @@ export function AccessibleHeading({
   className?: string;
   id?: string;
 } & React.HTMLAttributes<HTMLHeadingElement>) {
-  const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+  const Tag = `h${level}` as keyof React.JSX.IntrinsicElements;
   
   return React.createElement(
     Tag,

@@ -3,6 +3,9 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
+// Required for static export
+export const dynamic = 'force-static';
+
 // File upload size limit (100MB)
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
@@ -218,7 +221,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
 }
 
 // Handle OPTIONS for CORS
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {

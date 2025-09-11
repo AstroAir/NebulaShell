@@ -182,104 +182,109 @@ export class EnhancedTerminalHistoryManager {
   }
 
   search(options: HistorySearchOptions = {}): HistoryEntry[] {
-    let results = [...this.history];
+    let candidateEntries: HistoryEntry[] = [];
+    let matchingIds: Set<string> | null = null;
 
-    // Filter by query using search index
+    // Filter by query using search index first (most selective)
     if (options.query) {
       const query = options.query.toLowerCase();
-      const matchingIds = new Set<string>();
+      matchingIds = new Set<string>();
 
       // Check for special search syntax
       if (query.startsWith('tag:')) {
         const tag = query.substring(4);
         const tagResults = this.searchIndex.get(`tag:${tag}`);
         if (tagResults) {
-          tagResults.forEach(id => matchingIds.add(id));
+          tagResults.forEach(id => matchingIds!.add(id));
         }
       } else if (query.startsWith('dir:')) {
         const dir = query.substring(4);
         const dirResults = this.searchIndex.get(`dir:${dir}`);
         if (dirResults) {
-          dirResults.forEach(id => matchingIds.add(id));
+          dirResults.forEach(id => matchingIds!.add(id));
         }
       } else {
-        // Regular text search
-        const words = query.split(/\s+/);
-        words.forEach(word => {
-          if (word.length > 2) {
-            const wordResults = this.searchIndex.get(word);
-            if (wordResults) {
-              if (matchingIds.size === 0) {
-                wordResults.forEach(id => matchingIds.add(id));
-              } else {
-                // Intersection for AND behavior
+        // Regular text search using index - optimized for performance
+        const words = query.split(/\s+/).filter(word => word.length > 2);
+
+        if (words.length > 0) {
+          // Start with results from first word
+          const firstWordResults = this.searchIndex.get(words[0]);
+          if (firstWordResults) {
+            firstWordResults.forEach(id => matchingIds!.add(id));
+
+            // Intersect with results from other words for AND behavior
+            for (let i = 1; i < words.length; i++) {
+              const wordResults = this.searchIndex.get(words[i]);
+              if (wordResults) {
                 const intersection = new Set<string>();
-                matchingIds.forEach(id => {
+                matchingIds!.forEach(id => {
                   if (wordResults.has(id)) {
                     intersection.add(id);
                   }
                 });
-                matchingIds.clear();
-                intersection.forEach(id => matchingIds.add(id));
+                matchingIds = intersection;
+              } else {
+                // If any word has no results, no matches possible
+                matchingIds!.clear();
+                break;
               }
             }
           }
-        });
+        }
 
         // Fallback to simple string matching if no index results
-        if (matchingIds.size === 0) {
-          results = results.filter(entry => 
-            entry.command.toLowerCase().includes(query)
-          );
-        } else {
-          results = results.filter(entry => matchingIds.has(entry.id));
+        if (matchingIds!.size === 0) {
+          // Direct iteration is faster than filter for large arrays
+          for (const entry of this.history) {
+            if (entry.command.toLowerCase().includes(query)) {
+              matchingIds!.add(entry.id);
+            }
+          }
         }
       }
 
+      // Build candidate entries from matching IDs
       if (matchingIds.size > 0) {
-        results = results.filter(entry => matchingIds.has(entry.id));
+        for (const entry of this.history) {
+          if (matchingIds.has(entry.id)) {
+            candidateEntries.push(entry);
+          }
+        }
       }
+    } else {
+      // No query filter - use all entries
+      candidateEntries = this.history;
     }
 
-    // Filter by session
-    if (options.sessionId) {
-      results = results.filter(entry => entry.sessionId === options.sessionId);
+    // Apply additional filters efficiently
+    let results: HistoryEntry[] = [];
+
+    for (const entry of candidateEntries) {
+      // Apply all filters in one pass
+      if (options.sessionId && entry.sessionId !== options.sessionId) continue;
+      if (options.startDate && entry.timestamp < options.startDate.getTime()) continue;
+      if (options.endDate && entry.timestamp > options.endDate.getTime()) continue;
+      if (options.exitCode !== undefined && entry.exitCode !== options.exitCode) continue;
+      if (options.tags && options.tags.length > 0 &&
+          (!entry.tags || !options.tags.some(tag => entry.tags!.includes(tag)))) continue;
+      if (options.favorites && !entry.favorite) continue;
+
+      results.push(entry);
     }
 
-    // Filter by date range
-    if (options.startDate) {
-      results = results.filter(entry => entry.timestamp >= options.startDate!.getTime());
-    }
-    if (options.endDate) {
-      results = results.filter(entry => entry.timestamp <= options.endDate!.getTime());
-    }
-
-    // Filter by exit code
-    if (options.exitCode !== undefined) {
-      results = results.filter(entry => entry.exitCode === options.exitCode);
-    }
-
-    // Filter by tags
-    if (options.tags && options.tags.length > 0) {
-      results = results.filter(entry => 
-        entry.tags && options.tags!.some(tag => entry.tags!.includes(tag))
-      );
-    }
-
-    // Filter favorites
-    if (options.favorites) {
-      results = results.filter(entry => entry.favorite);
-    }
-
-    // Sort by timestamp (newest first)
+    // Sort by timestamp (newest first) - only sort what we need
     results.sort((a, b) => b.timestamp - a.timestamp);
 
-    // Apply pagination
-    if (options.offset) {
-      results = results.slice(options.offset);
+    // Apply pagination efficiently
+    const offset = options.offset || 0;
+    const limit = options.limit;
+
+    if (offset > 0) {
+      results = results.slice(offset);
     }
-    if (options.limit) {
-      results = results.slice(0, options.limit);
+    if (limit !== undefined) {
+      results = results.slice(0, limit);
     }
 
     return results;

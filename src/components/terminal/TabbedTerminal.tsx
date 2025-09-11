@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,8 +27,7 @@ import { Terminal } from './Terminal';
 import { terminalSessionManager } from '@/lib/terminal-session-manager';
 import { TerminalTab } from '@/types/terminal-session';
 import { useTerminal } from './TerminalContext';
-import { usePerformanceMonitor, useStableCallback } from '@/hooks/use-performance-monitor';
-import { SkeletonTerminal } from '@/components/ui/skeleton-enhanced';
+
 import { useResponsive } from '@/hooks/use-responsive';
 import { KeyboardShortcuts } from '@/components/keyboard/KeyboardShortcuts';
 import { useSwipeNavigation } from '@/hooks/use-touch-gestures';
@@ -214,13 +213,13 @@ export function TabbedTerminal({
   const getConnectionIcon = (status: TerminalTab['connectionStatus']) => {
     switch (status) {
       case 'connected':
-        return <Wifi className="h-3 w-3 text-green-500" />;
+        return <Wifi className="h-3 w-3 text-success" />;
       case 'connecting':
-        return <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />;
+        return <Loader2 className="h-3 w-3 text-info animate-spin" />;
       case 'error':
-        return <AlertCircle className="h-3 w-3 text-red-500" />;
+        return <AlertCircle className="h-3 w-3 text-destructive" />;
       default:
-        return <WifiOff className="h-3 w-3 text-gray-500" />;
+        return <WifiOff className="h-3 w-3 text-muted-foreground" />;
     }
   };
 
@@ -236,10 +235,11 @@ export function TabbedTerminal({
 
   return (
     <>
-      <Card className={className}>
-      {/* Tab Bar */}
+      <Card className={cn("card-elevated overflow-hidden", className)}>
+      {/* Enhanced Tab Bar with Modern Design */}
       <div className={cn(
-        "flex items-center border-b bg-muted/30",
+        "flex items-center border-b bg-gradient-to-r from-muted/30 to-muted/50 backdrop-blur-sm",
+        "shadow-sm transition-all duration-200",
         isMobile && "px-2"
       )}>
         <div className="flex-1 flex items-center overflow-x-auto scrollbar-hide">
@@ -247,20 +247,35 @@ export function TabbedTerminal({
             <div
               key={tab.id}
               className={cn(
-                "flex items-center gap-1 border-r cursor-pointer min-w-0 touch-target",
-                // Mobile-specific styling
-                isMobile ? "px-2 py-3 max-w-32" : "px-3 py-2 max-w-48",
-                // Active state
+                "group relative flex items-center gap-2 cursor-pointer min-w-0 touch-target transition-all duration-300",
+                // Enhanced mobile-specific styling
+                isMobile ? "px-3 py-3 max-w-36" : "px-4 py-3 max-w-52",
+                // Enhanced active state with modern styling and better visual feedback
                 tab.isActive
-                  ? 'bg-background border-b-2 border-b-primary'
-                  : 'hover:bg-muted/50',
-                // Activity indicator
-                tab.hasUnreadActivity && !tab.isActive && 'bg-blue-50 dark:bg-blue-950'
+                  ? 'bg-background/98 border-b-2 border-b-primary shadow-md backdrop-blur-sm relative z-10'
+                  : 'hover:bg-background/70 hover:shadow-sm hover:scale-[1.02]',
+                // Enhanced activity indicator with better visual prominence
+                tab.hasUnreadActivity && !tab.isActive && 'bg-info/15 border-l-3 border-l-info animate-pulse',
+                // Add subtle border between tabs with better visual separation
+                "border-r border-border/40 last:border-r-0",
+                // Add subtle glow effect for active tab
+                tab.isActive && "before:absolute before:inset-0 before:bg-gradient-to-b before:from-primary/5 before:to-transparent before:pointer-events-none"
               )}
               onClick={() => handleTabClick(tab.id)}
             >
-              {getConnectionIcon(tab.connectionStatus)}
-              
+              {/* Enhanced connection status with better visual feedback and animations */}
+              <div className={cn(
+                "flex items-center justify-center rounded-full transition-all duration-300 relative",
+                isMobile ? "w-5 h-5" : "w-6 h-6",
+                tab.connectionStatus === 'connected' && "bg-success/25 shadow-sm",
+                tab.connectionStatus === 'connecting' && "bg-info/25 shadow-sm animate-pulse",
+                tab.connectionStatus === 'error' && "bg-destructive/25 shadow-sm",
+                // Add subtle ring effect for active connection
+                tab.connectionStatus === 'connected' && "ring-1 ring-success/20"
+              )}>
+                {getConnectionIcon(tab.connectionStatus)}
+              </div>
+
               {editingTabId === tab.id ? (
                 <Input
                   value={editingTitle}
@@ -275,18 +290,25 @@ export function TabbedTerminal({
                     }
                   }}
                   className={cn(
-                    "text-xs",
-                    isMobile ? "h-5" : "h-6"
+                    "border-0 bg-transparent focus:bg-background/80 rounded-md",
+                    isMobile ? "text-xs h-6" : "text-sm h-7"
                   )}
                   autoFocus
                 />
               ) : (
-                <span className={cn(
-                  "truncate font-medium",
-                  isMobile ? "text-xs" : "text-sm"
-                )}>
-                  {isMobile ? tab.title.slice(0, 8) + (tab.title.length > 8 ? '...' : '') : tab.title}
-                </span>
+                <div className="flex-1 min-w-0">
+                  <span className={cn(
+                    "block truncate font-medium transition-colors duration-200",
+                    isMobile ? "text-xs" : "text-sm",
+                    tab.isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                  )}>
+                    {isMobile ? tab.title.slice(0, 10) + (tab.title.length > 10 ? '...' : '') : tab.title}
+                  </span>
+                  {/* Activity indicator dot */}
+                  {tab.hasUnreadActivity && !tab.isActive && (
+                    <div className="absolute top-1 right-1 w-2 h-2 bg-info rounded-full animate-pulse" />
+                  )}
+                </div>
               )}
 
               {tab.hasUnreadActivity && !tab.isActive && (
@@ -352,28 +374,34 @@ export function TabbedTerminal({
           ))}
         </div>
 
-        {/* New Tab Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleNewTab}
-          disabled={!terminalSessionManager.canCreateNewTab()}
-          className={cn(
-            "touch-target",
-            isMobile ? "mx-1 px-2" : "mx-2"
-          )}
-        >
-          <Plus className={cn(
-            isMobile ? "h-5 w-5" : "h-4 w-4"
-          )} />
-          {!isMobile && <span className="ml-1 hidden sm:inline">New</span>}
-        </Button>
+        {/* Enhanced New Tab Button */}
+        <div className="flex items-center border-l border-border/50 pl-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleNewTab}
+            disabled={!terminalSessionManager.canCreateNewTab()}
+            className={cn(
+              "touch-target interactive-hover transition-all duration-200",
+              "hover:bg-primary/10 hover:text-primary",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              isMobile ? "mx-1 px-2 py-2" : "mx-2 px-3 py-2"
+            )}
+            title="Create new terminal tab"
+          >
+            <Plus className={cn(
+              "transition-transform duration-200 group-hover:scale-110",
+              isMobile ? "h-5 w-5" : "h-4 w-4"
+            )} />
+            {!isMobile && <span className="ml-2 font-medium">New Tab</span>}
+          </Button>
+        </div>
       </div>
 
-      {/* Terminal Content */}
+      {/* Enhanced Terminal Content Area */}
       <CardContent
         ref={terminalContentRef}
-        className="p-0 h-[calc(100%-48px)] relative"
+        className="p-0 h-[calc(100%-48px)] relative bg-gradient-to-br from-background to-background/95"
       >
         {activeSession ? (
           <Terminal
@@ -383,10 +411,17 @@ export function TabbedTerminal({
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
-            <div className="text-center">
-              <Plus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">No Terminal Sessions</p>
-              <p className="text-sm">Click the + button to create a new terminal session</p>
+            <div className="text-center space-y-4 p-8">
+              <div className="relative">
+                <Plus className="h-16 w-16 mx-auto opacity-40 transition-all duration-300 hover:opacity-60 hover:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-xl opacity-30"></div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xl font-semibold">No Terminal Sessions</p>
+                <p className="text-sm text-muted-foreground/80 max-w-md mx-auto leading-relaxed">
+                  Click the + button to create a new terminal session and start connecting to your servers
+                </p>
+              </div>
             </div>
           </div>
         )}

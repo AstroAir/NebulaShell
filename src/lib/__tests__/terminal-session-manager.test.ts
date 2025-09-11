@@ -1,6 +1,5 @@
 import { TerminalSessionManager } from '../terminal-session-manager'
 import { SSHConnectionConfig } from '@/types/ssh'
-import { logger } from '../logger'
 
 // Mock logger
 jest.mock('../logger', () => ({

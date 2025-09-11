@@ -32,8 +32,12 @@ interface ResponsiveHeaderProps {
 
 export function ResponsiveHeader({ children, className }: ResponsiveHeaderProps) {
   return (
-    <header className={cn('border-b bg-card sticky top-0 z-40', className)}>
-      <div className="container mx-auto px-4 py-4">
+    <header className={cn(
+      'border-b bg-card/95 backdrop-blur-sm sticky top-0 z-40',
+      'shadow-sm transition-all duration-200',
+      className
+    )}>
+      <div className="container mx-auto px-4 py-3 lg:py-4">
         {children}
       </div>
     </header>
@@ -49,10 +53,10 @@ export function ResponsiveMain({ children, className }: ResponsiveMainProps) {
   const { isFullscreen } = useResponsiveLayout();
 
   return (
-    <main 
+    <main
       className={cn(
-        'flex-1 container mx-auto px-4 py-6',
-        isFullscreen && 'px-0 py-0',
+        'flex-1 container mx-auto transition-all duration-300',
+        isFullscreen ? 'px-0 py-0' : 'px-4 py-6 lg:px-6 lg:py-8',
         className
       )}
     >
@@ -70,17 +74,17 @@ export function ResponsiveGrid({ children, className }: ResponsiveGridProps) {
   const { isFullscreen, isDesktop } = useResponsiveLayout();
 
   return (
-    <div 
+    <div
       className={cn(
-        'grid gap-6 h-full',
-        // Mobile: single column
-        'grid-cols-1',
-        // Desktop: sidebar + main content
-        isDesktop && !isFullscreen && 'lg:grid-cols-[300px_1fr]',
+        'grid h-full transition-all duration-300',
+        // Mobile: single column with better spacing
+        'grid-cols-1 gap-4',
+        // Desktop: sidebar + main content with optimized spacing
+        isDesktop && !isFullscreen && 'lg:grid-cols-[320px_1fr] lg:gap-6',
         // Fullscreen: single column
-        isFullscreen && 'grid-cols-1',
-        // Height calculations
-        isFullscreen ? 'h-screen' : 'h-[calc(100vh-120px)]',
+        isFullscreen && 'grid-cols-1 gap-0',
+        // Height calculations with better viewport handling
+        isFullscreen ? 'h-screen' : 'h-[calc(100vh-140px)] lg:h-[calc(100vh-120px)]',
         className
       )}
     >

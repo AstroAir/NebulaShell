@@ -3,15 +3,14 @@ import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
+// Required for static export
+export const dynamic = 'force-static';
+
 interface DownloadRequest {
   remotePath: string;
 }
 
-interface DownloadResponse {
-  success: boolean;
-  message: string;
-  error?: string;
-}
+
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -105,7 +104,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 // Handle OPTIONS for CORS
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {

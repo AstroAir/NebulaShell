@@ -3,6 +3,9 @@ import { sshManager } from '@/lib/ssh-manager';
 import { SSHConnectionConfig } from '@/types/ssh';
 import { v4 as uuidv4 } from 'uuid';
 
+// Required for static export
+export const dynamic = 'force-static';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

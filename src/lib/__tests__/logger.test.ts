@@ -1,4 +1,4 @@
-import { Logger, LogLevel, logger } from '../logger'
+import { Logger, LogLevel } from '../logger'
 import { securityManager } from '../security'
 
 // Mock security manager
