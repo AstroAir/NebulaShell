@@ -47,6 +47,29 @@ next-env.d.ts
 *.tsbuildinfo
 
 # ===================================
+# Tauri (Rust Desktop Application)
+# ===================================
+# Rust build artifacts
+src-tauri/target/
+**/*.rs.bk
+
+# Generated files
+src-tauri/gen/
+
+# Bundle outputs and installers
+*.app
+*.dmg
+*.deb
+*.rpm
+*.AppImage
+
+# Windows installer tools
+src-tauri/WixTools/
+
+# Cargo lock file in root (keep src-tauri/Cargo.lock for applications)
+/Cargo.lock
+
+# ===================================
 # Environment Variables
 # ===================================
 .env*

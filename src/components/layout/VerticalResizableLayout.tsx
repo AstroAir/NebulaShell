@@ -154,6 +154,7 @@ export const VerticalResizableLayout: React.FC<VerticalResizableLayoutProps> = (
             size="sm"
             onClick={toggleBottomPanel}
             className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm border"
+            aria-label="Show bottom panel"
             title="Show bottom panel"
           >
             <SplitSquareHorizontal className="h-4 w-4" />
@@ -177,6 +178,7 @@ export const VerticalResizableLayout: React.FC<VerticalResizableLayoutProps> = (
             size="sm"
             onClick={toggleBottomCollapse}
             className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm border"
+            aria-label={layoutState.isBottomCollapsed ? "Show bottom panel" : "Hide bottom panel"}
             title={layoutState.isBottomCollapsed ? "Show bottom panel" : "Hide bottom panel"}
           >
             {layoutState.isBottomCollapsed ? (
@@ -192,6 +194,7 @@ export const VerticalResizableLayout: React.FC<VerticalResizableLayoutProps> = (
           size="sm"
           onClick={toggleBottomPanel}
           className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm border"
+          aria-label="Close bottom panel"
           title="Close bottom panel"
         >
           <SplitSquareHorizontal className="h-4 w-4" />
@@ -202,6 +205,7 @@ export const VerticalResizableLayout: React.FC<VerticalResizableLayoutProps> = (
           size="sm"
           onClick={resetLayout}
           className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm border"
+          aria-label="Reset layout"
           title="Reset layout"
         >
           <RotateCcw className="h-4 w-4" />
@@ -261,6 +265,7 @@ export const VerticalResizableLayout: React.FC<VerticalResizableLayoutProps> = (
             size="sm"
             onClick={toggleBottomCollapse}
             className="h-6 w-12 rounded-t-md rounded-b-none bg-background/80 backdrop-blur-sm border border-b-0 hover:h-8 transition-all duration-200"
+            aria-label="Show bottom panel"
             title="Show bottom panel"
           >
             <PanelBottomOpen className="h-4 w-4" />

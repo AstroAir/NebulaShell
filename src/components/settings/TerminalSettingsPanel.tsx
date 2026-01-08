@@ -147,7 +147,7 @@ export function TerminalSettingsPanel({ className, onClose }: TerminalSettingsPa
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="appearance" className="flex items-center gap-1">
+            <TabsTrigger value="appearance" data-testid="themes-tab" className="flex items-center gap-1">
               <Palette className="h-4 w-4" />
               Appearance
             </TabsTrigger>

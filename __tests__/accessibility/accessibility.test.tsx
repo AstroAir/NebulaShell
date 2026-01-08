@@ -6,7 +6,7 @@ import { TerminalThemeSelector } from '@/components/terminal/TerminalThemeSelect
 import { CommandHistorySearch } from '@/components/terminal/CommandHistorySearch';
 import { DragDropFileTransfer } from '@/components/file-transfer/DragDropFileTransfer';
 import { CollaborationPanel } from '@/components/collaboration/CollaborationPanel';
-import { EnhancedConnectionManager } from '@/components/connection/EnhancedConnectionManager';
+import { ConnectionManager } from '@/components/connection/ConnectionManager';
 import { createMockCollaborationUser } from '../utils/test-utils';
 
 // Extend Jest matchers
@@ -294,28 +294,28 @@ describe('Accessibility Tests', () => {
     });
   });
 
-  describe('Enhanced Connection Manager', () => {
+  describe('Connection Manager', () => {
     it('should not have accessibility violations', async () => {
       const { container } = render(
-        <EnhancedConnectionManager 
+        <ConnectionManager
           onConnect={jest.fn()}
           onProfileCreate={jest.fn()}
           onProfileUpdate={jest.fn()}
           onProfileDelete={jest.fn()}
         />
       );
-      
+
       const results = await axe(container);
       expectAxe(results).toHaveNoViolations();
     });
 
     it('should have proper search functionality accessibility', () => {
       render(
-        <EnhancedConnectionManager 
+        <ConnectionManager
           onConnect={jest.fn()}
         />
       );
-      
+
       const searchInput = screen.getByRole('searchbox');
       expect(searchInput).toHaveAccessibleName();
       expect(searchInput).toHaveAttribute('aria-describedby');
@@ -323,11 +323,11 @@ describe('Accessibility Tests', () => {
 
     it('should provide accessible profile cards', () => {
       render(
-        <EnhancedConnectionManager 
+        <ConnectionManager
           onConnect={jest.fn()}
         />
       );
-      
+
       // Profile cards should be accessible
       const profileCards = screen.getAllByRole('button');
       profileCards.forEach(card => {
@@ -337,14 +337,14 @@ describe('Accessibility Tests', () => {
 
     it('should support keyboard navigation in tabs', () => {
       render(
-        <EnhancedConnectionManager 
+        <ConnectionManager
           onConnect={jest.fn()}
         />
       );
-      
+
       const tabList = screen.getByRole('tablist');
       expect(tabList).toBeInTheDocument();
-      
+
       const tabs = screen.getAllByRole('tab');
       tabs.forEach(tab => {
         expect(tab).toHaveAttribute('aria-selected');

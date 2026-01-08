@@ -60,53 +60,43 @@ describe('Design System', () => {
 
   describe('Spacing Tokens', () => {
     it('should provide correct spacing values', () => {
-      expect(spacing.xs).toBe('space-y-1');
-      expect(spacing.sm).toBe('space-y-2');
-      expect(spacing.md).toBe('space-y-4');
-      expect(spacing.lg).toBe('space-y-6');
-      expect(spacing.xl).toBe('space-y-8');
-      expect(spacing['2xl']).toBe('space-y-12');
-      expect(spacing['3xl']).toBe('space-y-16');
+      expect(spacing.xs).toBe('space-y-2');
+      expect(spacing.sm).toBe('space-y-4');
+      expect(spacing.md).toBe('space-y-6');
+      expect(spacing.lg).toBe('space-y-8');
+      expect(spacing.xl).toBe('space-y-12');
     });
 
     it('should provide correct horizontal spacing values', () => {
-      expect(spacingX.xs).toBe('space-x-1');
-      expect(spacingX.sm).toBe('space-x-2');
-      expect(spacingX.md).toBe('space-x-4');
-      expect(spacingX.lg).toBe('space-x-6');
-      expect(spacingX.xl).toBe('space-x-8');
-      expect(spacingX['2xl']).toBe('space-x-12');
-      expect(spacingX['3xl']).toBe('space-x-16');
+      expect(spacingX.xs).toBe('space-x-2');
+      expect(spacingX.sm).toBe('space-x-4');
+      expect(spacingX.md).toBe('space-x-6');
+      expect(spacingX.lg).toBe('space-x-8');
+      expect(spacingX.xl).toBe('space-x-12');
     });
 
     it('should provide correct gap values', () => {
-      expect(gap.xs).toBe('gap-1');
-      expect(gap.sm).toBe('gap-2');
-      expect(gap.md).toBe('gap-4');
-      expect(gap.lg).toBe('gap-6');
-      expect(gap.xl).toBe('gap-8');
-      expect(gap['2xl']).toBe('gap-12');
-      expect(gap['3xl']).toBe('gap-16');
+      expect(gap.xs).toBe('gap-2');
+      expect(gap.sm).toBe('gap-4');
+      expect(gap.md).toBe('gap-6');
+      expect(gap.lg).toBe('gap-8');
+      expect(gap.xl).toBe('gap-12');
     });
 
     it('should provide correct padding values', () => {
-      expect(padding.xs).toBe('p-1');
-      expect(padding.sm).toBe('p-2');
-      expect(padding.md).toBe('p-4');
-      expect(padding.lg).toBe('p-6');
-      expect(padding.xl).toBe('p-8');
-      expect(padding['2xl']).toBe('p-12');
-      expect(padding['3xl']).toBe('p-16');
+      expect(padding.xs).toBe('p-2');
+      expect(padding.sm).toBe('p-4');
+      expect(padding.md).toBe('p-6');
+      expect(padding.lg).toBe('p-8');
+      expect(padding.xl).toBe('p-12');
     });
 
     it('should provide correct margin values', () => {
-      expect(margin.xs).toBe('m-1');
-      expect(margin.sm).toBe('m-2');
-      expect(margin.md).toBe('m-4');
-      expect(margin.lg).toBe('m-6');
-      expect(margin.xl).toBe('m-8');
-      expect(margin['2xl']).toBe('m-12');
-      expect(margin['3xl']).toBe('m-16');
+      expect(margin.xs).toBe('m-2');
+      expect(margin.sm).toBe('m-4');
+      expect(margin.md).toBe('m-6');
+      expect(margin.lg).toBe('m-8');
+      expect(margin.xl).toBe('m-12');
     });
   });
 

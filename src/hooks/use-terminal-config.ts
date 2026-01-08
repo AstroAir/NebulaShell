@@ -65,10 +65,18 @@ export function useTerminalConfig(): TerminalConfig {
     brightWhite: '#ffffff',
   };
 
-  // Mobile-optimized configuration
+  // Utility to map width to a value range (clamp-like behavior)
+  const scale = (w: number, minW: number, maxW: number, minV: number, maxV: number) => {
+    const clampedW = Math.max(minW, Math.min(maxW, w));
+    const t = (clampedW - minW) / (maxW - minW || 1);
+    return minV + t * (maxV - minV);
+  };
+
+  // Mobile-optimized configuration (fluid sizing)
   if (isMobile) {
+    const mobileSize = Math.round(scale(width, 320, 480, 11, 13));
     return {
-      fontSize: width < 375 ? 11 : 12, // Smaller font for very small screens
+      fontSize: mobileSize,
       lineHeight: 1.3, // Slightly increased line height for better readability
       fontFamily: '"SF Mono", "Monaco", "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, "Ubuntu Mono", monospace',
       scrollback: 500, // Reduced scrollback for better performance
@@ -81,10 +89,11 @@ export function useTerminalConfig(): TerminalConfig {
     };
   }
 
-  // Tablet configuration
+  // Tablet configuration (fluid sizing)
   if (isTablet) {
+    const tabletSize = Math.round(scale(width, 768, 1024, 12, 14));
     return {
-      fontSize: 13,
+      fontSize: tabletSize,
       lineHeight: 1.25,
       fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "SF Mono", Monaco, Consolas, "Ubuntu Mono", monospace',
       scrollback: 750,
@@ -97,19 +106,21 @@ export function useTerminalConfig(): TerminalConfig {
     };
   }
 
-  // Desktop configuration (default)
+  // Desktop configuration (fluid sizing)
+  const desktopSize = Math.round(scale(width, 1024, 1920, 13, 16));
   return {
-    fontSize: 14,
-    lineHeight: 1.2,
+    fontSize: desktopSize,
+    lineHeight: 1.22, // slightly more generous for readability
     fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "SF Mono", Monaco, Consolas, "Ubuntu Mono", monospace',
     scrollback: 1000,
     cursorBlink: true,
     cursorStyle: 'block',
     tabStopWidth: 4,
     allowTransparency: true,
-    minimumContrastRatio: 1,
+    minimumContrastRatio: 2, // improve readability on desktop too
     theme: baseTheme,
   };
+
 }
 
 // Mobile-specific terminal utilities

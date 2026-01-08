@@ -160,6 +160,38 @@ export class SSHManager {
     }
   }
 
+  async executeCommand(sessionId: string, command: string): Promise<{ success: boolean; output: string; error?: string }> {
+    const sessionData = this.sessions.get(sessionId);
+    if (!sessionData) {
+      throw new Error('Session not found');
+    }
+
+    const { ssh, session } = sessionData;
+    if (!session.connected) {
+      throw new Error('Session not connected');
+    }
+
+    try {
+      const result = await ssh.execCommand(command);
+      this.updateLastActivity(sessionId);
+
+      return {
+        success: result.code === 0,
+        output: result.stdout || result.stderr,
+        error: result.code !== 0 ? result.stderr : undefined
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Command execution failed', { sessionId, command, error: errorMessage });
+
+      return {
+        success: false,
+        output: '',
+        error: errorMessage
+      };
+    }
+  }
+
   // Mobile optimization methods
   setMobileSettings(sessionId: string, settings: Partial<MobileSettings>): void {
     const sessionData = this.sessions.get(sessionId);

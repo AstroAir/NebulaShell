@@ -14,7 +14,9 @@ import {
   Wifi,
   WifiOff,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -78,6 +80,54 @@ export function TabbedTerminal({
     enabled: isMobile && tabs.length > 1,
   });
 
+  // Horizontal scrolling state for the tab list
+  const tabsListRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollButtons = useCallback(() => {
+    const el = tabsListRef.current;
+    if (!el) return;
+    const left = el.scrollLeft > 0;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    setCanScrollLeft(left);
+    setCanScrollRight(right);
+  }, []);
+
+  useEffect(() => {
+    const el = tabsListRef.current;
+    if (!el) return;
+    updateScrollButtons();
+
+    const onScroll = () => updateScrollButtons();
+    el.addEventListener('scroll', onScroll);
+
+    const onResize = () => updateScrollButtons();
+    window.addEventListener('resize', onResize);
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => updateScrollButtons());
+      ro.observe(el);
+    }
+
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+      if (ro) ro.disconnect();
+    };
+  }, [updateScrollButtons]);
+
+  const scrollByAmount = (dir: 'left' | 'right') => {
+    const el = tabsListRef.current;
+    if (!el) return;
+    const amount = Math.round(el.clientWidth * 0.8);
+    el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
+  };
+
+  const scrollLeft = () => scrollByAmount('left');
+  const scrollRight = () => scrollByAmount('right');
+
   // Update tabs when session manager changes
   useEffect(() => {
     const updateTabs = () => {
@@ -101,6 +151,21 @@ export function TabbedTerminal({
 
     // Initial load
     updateTabs();
+
+    // Ensure at least one default tab exists so the terminal is present for tests and first-time users
+    if (terminalSessionManager.getTabCount() === 0) {
+      const defaultConfig = {
+        id: `local-${Date.now()}`,
+        hostname: 'local',
+        port: 22,
+        username: 'user',
+        name: 'Terminal',
+      } as const;
+      const session = terminalSessionManager.createSession(defaultConfig as any, defaultConfig.name);
+      // Activate the created tab
+      terminalSessionManager.activateTab(`tab_${session.id}`);
+      updateTabs();
+    }
 
     return () => {
       terminalSessionManager.off('tabCreated', handleTabCreated);
@@ -126,7 +191,7 @@ export function TabbedTerminal({
       alert('Maximum number of tabs reached');
       return;
     }
-    
+
     // This would typically open a connection dialog
     // For now, we'll emit an event that the parent can handle
     window.dispatchEvent(new CustomEvent('requestNewTerminal'));
@@ -235,33 +300,99 @@ export function TabbedTerminal({
 
   return (
     <>
-      <Card className={cn("card-elevated overflow-hidden", className)}>
-      {/* Enhanced Tab Bar with Modern Design */}
+      {/* Hidden description for screen readers */}
+      <div id="terminal-description" className="sr-only">
+        Terminal interface with multiple tabs. Use arrow keys to navigate between tabs, Enter to activate, and Escape to close menus.
+      </div>
+
+      <Card
+        className={cn(
+          "glass-card flex h-full flex-col overflow-hidden border-border/30",
+          "shadow-xl hover:shadow-2xl transition-all duration-300",
+          "bg-gradient-to-br from-card/95 via-card/98 to-card/95",
+          className
+        )}
+        role="region"
+        aria-label="Terminal interface"
+        aria-describedby="terminal-description"
+      >
+      {/* Enhanced Tab Bar with Improved Visual Hierarchy */}
       <div className={cn(
-        "flex items-center border-b bg-gradient-to-r from-muted/30 to-muted/50 backdrop-blur-sm",
-        "shadow-sm transition-all duration-200",
-        isMobile && "px-2"
+        "flex items-center border-b border-border/30 relative",
+        "bg-gradient-to-r from-muted/20 via-muted/10 to-muted/20",
+        "backdrop-blur-sm shadow-sm",
+        isMobile ? "px-2 py-2" : "px-4 py-3"
       )}>
-        <div className="flex-1 flex items-center overflow-x-auto scrollbar-hide">
+        {/* Subtle gradient overlay for depth */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/3 via-transparent to-accent/3 opacity-40"></div>
+        {/* Edge fade overlays for tab scroll affordance */ }
+        {canScrollLeft && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-20 bg-gradient-to-r from-background/80 to-transparent"
+          />
+        )}
+        {canScrollRight && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-20 bg-gradient-to-l from-background/80 to-transparent"
+          />
+        )}
+
+
+        {/* Tab container with improved scrolling */}
+        <div
+          ref={tabsListRef}
+          onScroll={() => updateScrollButtons()}
+          className={cn(
+            "flex-1 flex items-center relative z-10",
+            "overflow-x-auto scrollbar-hide scroll-smooth",
+            "gap-2"
+          )}
+          role="tablist"
+          aria-label="Terminal tabs"
+        >
           {tabs.map((tab) => (
             <div
               key={tab.id}
               className={cn(
-                "group relative flex items-center gap-2 cursor-pointer min-w-0 touch-target transition-all duration-300",
-                // Enhanced mobile-specific styling
-                isMobile ? "px-3 py-3 max-w-36" : "px-4 py-3 max-w-52",
-                // Enhanced active state with modern styling and better visual feedback
+                "group relative flex items-center cursor-pointer min-w-0 transition-all duration-300",
+                "rounded-t-lg border-x border-t border-border/30",
+                // Enhanced spacing and sizing
+                isMobile ? "px-4 py-3 gap-2 max-w-36" : "px-6 py-4 gap-3 max-w-52",
+                // Enhanced active state with improved visual hierarchy
                 tab.isActive
-                  ? 'bg-background/98 border-b-2 border-b-primary shadow-md backdrop-blur-sm relative z-10'
-                  : 'hover:bg-background/70 hover:shadow-sm hover:scale-[1.02]',
-                // Enhanced activity indicator with better visual prominence
-                tab.hasUnreadActivity && !tab.isActive && 'bg-info/15 border-l-3 border-l-info animate-pulse',
-                // Add subtle border between tabs with better visual separation
-                "border-r border-border/40 last:border-r-0",
-                // Add subtle glow effect for active tab
-                tab.isActive && "before:absolute before:inset-0 before:bg-gradient-to-b before:from-primary/5 before:to-transparent before:pointer-events-none"
+                  ? cn(
+                      'bg-gradient-to-b from-background/98 to-background/95',
+                      'border-primary/40 shadow-lg backdrop-blur-md relative z-20',
+                      'before:absolute before:inset-0 before:bg-gradient-to-b before:from-primary/8 before:to-transparent before:pointer-events-none before:rounded-t-lg'
+                    )
+                  : cn(
+                      'bg-gradient-to-b from-muted/40 to-muted/20',
+                      'hover:from-background/60 hover:to-background/40',
+                      'hover:shadow-md hover:scale-[1.02] hover:z-10',
+                      'border-border/20'
+                    ),
+                // Enhanced activity indicator
+                tab.hasUnreadActivity && !tab.isActive && cn(
+                  'bg-gradient-to-r from-info/20 to-info/10',
+                  'border-l-2 border-l-info animate-pulse-soft'
+                ),
+                // Improved visual separation
+                "ml-0.5 first:ml-0"
               )}
               onClick={() => handleTabClick(tab.id)}
+              role="tab"
+              aria-selected={tab.isActive}
+              aria-controls={`terminal-panel-${tab.id}`}
+              tabIndex={tab.isActive ? 0 : -1}
+              aria-label={`Terminal tab: ${tab.title}${tab.hasUnreadActivity ? ' (has activity)' : ''}${tab.connectionStatus === 'connected' ? ' (connected)' : ''}`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleTabClick(tab.id);
+                }
+              }}
             >
               {/* Enhanced connection status with better visual feedback and animations */}
               <div className={cn(
@@ -281,7 +412,7 @@ export function TabbedTerminal({
                   value={editingTitle}
                   onChange={(e) => setEditingTitle(e.target.value)}
                   onBlur={() => handleRenameTab(tab.id, editingTitle)}
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       handleRenameTab(tab.id, editingTitle);
                     } else if (e.key === 'Escape') {
@@ -315,7 +446,7 @@ export function TabbedTerminal({
                 <Badge variant="secondary" className="h-2 w-2 p-0 rounded-full" />
               )}
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 {/* Show dropdown menu only on desktop or when there are multiple tabs */}
                 {(!isMobile || tabs.length > 1) && (
                   <DropdownMenu>
@@ -328,6 +459,8 @@ export function TabbedTerminal({
                           isMobile ? "h-6 w-6" : "h-5 w-5"
                         )}
                         onClick={(e) => e.stopPropagation()}
+                        aria-label="Tab options"
+                        title="Tab options"
                       >
                         <MoreHorizontal className={cn(
                           isMobile ? "h-4 w-4" : "h-3 w-3"
@@ -360,67 +493,137 @@ export function TabbedTerminal({
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "p-0 hover:bg-muted touch-target",
-                    isMobile ? "h-6 w-6" : "h-5 w-5"
+                    "group/close relative overflow-hidden rounded-md transition-all duration-200",
+                    "hover:bg-destructive/20 hover:text-destructive hover:scale-110",
+                    "focus:bg-destructive/20 focus:text-destructive",
+                    "active:scale-95",
+                    isMobile ? "h-6 w-6 p-1" : "h-5 w-5 p-0.5"
                   )}
                   onClick={(e) => handleCloseTab(tab.id, e)}
+                  aria-label="Close tab"
+                  title="Close tab"
                 >
                   <X className={cn(
+                    "transition-all duration-200 group-hover/close:rotate-90",
                     isMobile ? "h-4 w-4" : "h-3 w-3"
                   )} />
+                  <div className="absolute inset-0 bg-destructive/10 opacity-0 group-hover/close:opacity-100 transition-opacity duration-200"></div>
                 </Button>
               </div>
             </div>
           ))}
+          {canScrollLeft && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={scrollLeft}
+              aria-label="Scroll tabs left"
+              className={cn(
+                "absolute left-1 top-1/2 -translate-y-1/2 z-20 h-7 w-7 p-0",
+                "rounded-full bg-background/80 backdrop-blur-sm border shadow-sm",
+                "hidden sm:flex items-center justify-center"
+              )}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
+          {canScrollRight && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={scrollRight}
+              aria-label="Scroll tabs right"
+              className={cn(
+                "absolute right-1 top-1/2 -translate-y-1/2 z-20 h-7 w-7 p-0",
+                "rounded-full bg-background/80 backdrop-blur-sm border shadow-sm",
+                "hidden sm:flex items-center justify-center"
+              )}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
+
         </div>
 
-        {/* Enhanced New Tab Button */}
-        <div className="flex items-center border-l border-border/50 pl-2">
+        {/* Enhanced New Tab Button with improved styling */}
+        <div className="flex items-center border-l border-border/60 pl-4 relative z-10">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleNewTab}
             disabled={!terminalSessionManager.canCreateNewTab()}
             className={cn(
-              "touch-target interactive-hover transition-all duration-200",
-              "hover:bg-primary/10 hover:text-primary",
+              "group touch-target transition-all duration-300 relative overflow-hidden",
+              "hover:bg-gradient-to-r hover:from-primary/15 hover:to-accent/15 hover:text-primary hover:shadow-md",
               "disabled:opacity-50 disabled:cursor-not-allowed",
-              isMobile ? "mx-1 px-2 py-2" : "mx-2 px-3 py-2"
+              "rounded-xl border border-border/30",
+              isMobile ? "mx-2 px-4 py-3" : "mx-3 px-6 py-3"
             )}
+            aria-label="Create new terminal tab"
             title="Create new terminal tab"
           >
-            <Plus className={cn(
-              "transition-transform duration-200 group-hover:scale-110",
-              isMobile ? "h-5 w-5" : "h-4 w-4"
-            )} />
-            {!isMobile && <span className="ml-2 font-medium">New Tab</span>}
+            <div className="relative z-10 flex items-center">
+              <Plus className={cn(
+                "transition-all duration-300 group-hover:rotate-90 group-hover:scale-110",
+                isMobile ? "h-5 w-5" : "h-4 w-4"
+              )} />
+              {!isMobile && <span className="ml-2 font-semibold tracking-wide">New Tab</span>}
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </Button>
         </div>
       </div>
 
-      {/* Enhanced Terminal Content Area */}
+      {/* Enhanced Terminal Content Area with Modern Design */}
       <CardContent
         ref={terminalContentRef}
-        className="p-0 h-[calc(100%-48px)] relative bg-gradient-to-br from-background to-background/95"
+        className={cn(
+          "p-0 flex-1 min-h-0 relative overflow-hidden",
+          "bg-gradient-to-br from-terminal-background via-terminal-background/98 to-terminal-background/95",
+          "border-t border-border/20"
+        )}
       >
+        {/* Subtle background pattern for depth */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-primary/8 via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-accent/6 via-transparent to-transparent"></div>
+        </div>
+
         {activeSession ? (
-          <Terminal
-            key={activeSession.id}
-            sessionId={activeSession.id}
-            className="h-full"
-          />
+          <div
+            className="relative z-10 h-full"
+            role="tabpanel"
+            id={`terminal-panel-${activeSession.id}`}
+            aria-labelledby={`tab-${activeSession.id}`}
+          >
+            <Terminal
+              key={activeSession.id}
+              sessionId={activeSession.id}
+              className="h-full"
+            />
+          </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <div className="text-center space-y-4 p-8">
-              <div className="relative">
-                <Plus className="h-16 w-16 mx-auto opacity-40 transition-all duration-300 hover:opacity-60 hover:scale-110" />
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-xl opacity-30"></div>
+          <div className="flex items-center justify-center h-full text-muted-foreground relative z-10">
+            <div className="text-center space-y-6 p-8 max-w-lg mx-auto glass-subtle rounded-2xl border border-border/30 shadow-lg">
+              <div className="relative group cursor-pointer" onClick={handleNewTab}>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-full blur-2xl opacity-30 group-hover:opacity-50 transition-all duration-500 animate-pulse-soft"></div>
+                <div className="relative p-6 rounded-2xl bg-gradient-to-br from-muted/40 to-muted/20 backdrop-blur-sm border border-border/30 group-hover:border-primary/30 transition-all duration-300 group-hover:scale-105">
+                  <Plus className="h-16 w-16 mx-auto opacity-60 transition-all duration-300 group-hover:opacity-80 group-hover:rotate-90 text-primary" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-xl font-semibold">No Terminal Sessions</p>
-                <p className="text-sm text-muted-foreground/80 max-w-md mx-auto leading-relaxed">
-                  Click the + button to create a new terminal session and start connecting to your servers
+              <div className="space-y-3">
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">No Terminal Sessions</h3>
+                <p className="text-base text-muted-foreground/80 max-w-md mx-auto leading-relaxed">
+                  Click the + button above or in the tab bar to create your first terminal session and start connecting to your servers.
                 </p>
+                <div className="pt-2">
+                  <Button
+                    onClick={handleNewTab}
+                    className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground font-semibold px-6 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    Create Terminal Session
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

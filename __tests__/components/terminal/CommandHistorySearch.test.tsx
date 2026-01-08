@@ -2,21 +2,21 @@ import React from 'react';
 import { screen, waitFor } from '@testing-library/react';
 import { render, user, createMockHistoryEntry } from '../../utils/test-utils';
 import { CommandHistorySearch } from '@/components/terminal/CommandHistorySearch';
-import { enhancedTerminalHistoryManager } from '@/lib/terminal-history-enhanced';
+import { terminalHistoryManager } from '@/lib/terminal-history-manager';
 
 // Mock the history manager
-jest.mock('@/lib/terminal-history-enhanced', () => ({
-  enhancedTerminalHistoryManager: {
-    search: jest.fn(),
+jest.mock('@/lib/terminal-history-manager', () => ({
+  terminalHistoryManager: {
+    searchEnhanced: jest.fn(),
     getMostUsedCommands: jest.fn(),
-    getStats: jest.fn(),
+    getEnhancedStats: jest.fn(),
     toggleFavorite: jest.fn(),
-    exportHistory: jest.fn(),
-    importHistory: jest.fn(),
+    exportEnhancedHistory: jest.fn(),
+    importEnhancedHistory: jest.fn(),
   },
 }));
 
-const mockHistoryManager = enhancedTerminalHistoryManager as jest.Mocked<typeof enhancedTerminalHistoryManager>;
+const mockHistoryManager = terminalHistoryManager as jest.Mocked<typeof terminalHistoryManager>;
 
 describe('CommandHistorySearch', () => {
   const mockHistoryEntries = [
@@ -71,9 +71,9 @@ describe('CommandHistorySearch', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockHistoryManager.search.mockReturnValue(mockHistoryEntries);
+    mockHistoryManager.searchEnhanced.mockReturnValue(mockHistoryEntries);
     mockHistoryManager.getMostUsedCommands.mockReturnValue(mockMostUsedCommands);
-    mockHistoryManager.getStats.mockReturnValue(mockStats);
+    mockHistoryManager.getEnhancedStats.mockReturnValue(mockStats);
   });
 
   describe('Rendering', () => {
@@ -116,7 +116,7 @@ describe('CommandHistorySearch', () => {
       
       // Wait for debounced search
       await waitFor(() => {
-        expect(mockHistoryManager.search).toHaveBeenCalledWith(
+        expect(mockHistoryManager.searchEnhanced).toHaveBeenCalledWith(
           expect.objectContaining({ query: 'git' })
         );
       }, { timeout: 1000 });
@@ -243,7 +243,7 @@ describe('CommandHistorySearch', () => {
       expect(comboboxes.length).toBeGreaterThan(0);
 
       // Check that the search function is called (component initializes with search)
-      expect(mockHistoryManager.search).toHaveBeenCalled();
+      expect(mockHistoryManager.searchEnhanced).toHaveBeenCalled();
     });
   });
 
@@ -297,19 +297,19 @@ describe('CommandHistorySearch', () => {
   describe('Export/Import', () => {
     it('calls export function when export button is clicked', async () => {
       const mockExportData = JSON.stringify({ history: mockHistoryEntries });
-      mockHistoryManager.exportHistory.mockReturnValue(mockExportData);
+      mockHistoryManager.exportEnhancedHistory.mockReturnValue(mockExportData);
 
       render(<CommandHistorySearch {...defaultProps} />);
 
       await user.click(screen.getByRole('button', { name: /export/i }));
 
-      expect(mockHistoryManager.exportHistory).toHaveBeenCalled();
+      expect(mockHistoryManager.exportEnhancedHistory).toHaveBeenCalled();
     });
   });
 
   describe('Empty States', () => {
     it('shows empty state when no commands found', () => {
-      mockHistoryManager.search.mockReturnValue([]);
+      mockHistoryManager.searchEnhanced.mockReturnValue([]);
       
       render(<CommandHistorySearch {...defaultProps} />);
       
@@ -345,7 +345,7 @@ describe('CommandHistorySearch', () => {
       
       // The accessibility provider should announce the results
       await waitFor(() => {
-        expect(mockHistoryManager.search).toHaveBeenCalled();
+        expect(mockHistoryManager.searchEnhanced).toHaveBeenCalled();
       });
     });
   });
@@ -361,14 +361,14 @@ describe('CommandHistorySearch', () => {
       
       // Should only call search once after debounce delay
       await waitFor(() => {
-        expect(mockHistoryManager.search).toHaveBeenCalledTimes(1);
+        expect(mockHistoryManager.searchEnhanced).toHaveBeenCalledTimes(1);
       }, { timeout: 1000 });
     });
 
     it('limits results to prevent performance issues', () => {
       render(<CommandHistorySearch {...defaultProps} />);
       
-      expect(mockHistoryManager.search).toHaveBeenCalledWith(
+      expect(mockHistoryManager.searchEnhanced).toHaveBeenCalledWith(
         expect.objectContaining({ limit: 100 })
       );
     });
@@ -379,7 +379,7 @@ describe('CommandHistorySearch', () => {
       // Mock console.error to suppress error output during test
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      mockHistoryManager.search.mockImplementation(() => {
+      mockHistoryManager.searchEnhanced.mockImplementation(() => {
         throw new Error('Search error');
       });
 
@@ -391,7 +391,7 @@ describe('CommandHistorySearch', () => {
     });
 
     it('handles missing data gracefully', () => {
-      mockHistoryManager.getStats.mockReturnValue({
+      mockHistoryManager.getEnhancedStats.mockReturnValue({
         totalCommands: 0,
         uniqueCommands: 0,
         mostUsedCommands: [],

@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # Primary SSH test server
+  ssh-server-primary:
+    build:
+      context: .
+      dockerfile: docker-ssh-server.dockerfile
+    container_name: ssh-test-primary
+    ports:
+      - "2222:22"
+    environment:
+      - SSH_USERS=testuser:testpass,admin:adminpass
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "22"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Secondary SSH server for multi-connection testing
+  ssh-server-secondary:
+    build:
+      context: .
+      dockerfile: docker-ssh-server.dockerfile
+    container_name: ssh-test-secondary
+    ports:
+      - "2223:22"
+    environment:
+      - SSH_USERS=testuser2:testpass2,admin2:adminpass2
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "22"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # SSH server with slow responses for timeout testing
+  ssh-server-slow:
+    build:
+      context: .
+      dockerfile: docker-ssh-server.dockerfile
+    container_name: ssh-test-slow
+    ports:
+      - "2224:22"
+    environment:
+      - SSH_USERS=slowuser:slowpass
+    networks:
+      - test-network
+    command: >
+      sh -c "
+        # Add artificial delay to SSH responses
+        tc qdisc add dev eth0 root netem delay 2000ms &&
+        /usr/sbin/sshd -D
+      "
+    cap_add:
+      - NET_ADMIN
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "22"]
+      interval: 15s
+      timeout: 10s
+      retries: 2
+      start_period: 45s
+
+  # SFTP-focused server for file transfer testing
+  sftp-server:
+    build:
+      context: .
+      dockerfile: docker-ssh-server.dockerfile
+    container_name: sftp-test-server
+    ports:
+      - "2225:22"
+    environment:
+      - SSH_USERS=sftpuser:sftppass
+    networks:
+      - test-network
+    volumes:
+      - ./test-files:/home/sftpuser/test-files:ro
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "22"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  test-network:
+    driver: bridge

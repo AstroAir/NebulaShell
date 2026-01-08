@@ -93,7 +93,12 @@ export async function POST(request: NextRequest) {
 
       // Get file/directory suggestions
       if (includeFiles && (!isFirstWord || currentWord.includes('/'))) {
-        const fileSuggestions = await getFileSuggestions();
+        const fileSuggestions = await getFileSuggestions(
+          sessionId,
+          currentWord,
+          context,
+          mobileOptimized
+        );
         suggestions.push(...fileSuggestions);
       }
 
@@ -208,13 +213,34 @@ function getCurrentWord(input: string, cursorPosition: number): string {
 }
 
 async function getCommandSuggestions(
-  sessionId: string, 
-  currentWord: string, 
+  sessionId: string,
+  currentWord: string,
   context: any,
   mobileOptimized: boolean
 ): Promise<AutoCompleteSuggestion[]> {
-  // This would typically query the remote system for available commands
-  // For now, return common commands
+  try {
+    // Try to get real commands from the remote system
+    const remoteCommands = await getRemoteCommands(sessionId, currentWord);
+
+    if (remoteCommands.length > 0) {
+      return remoteCommands
+        .slice(0, mobileOptimized ? 8 : 15)
+        .map(cmd => ({
+          text: cmd.name,
+          description: cmd.description || `Command: ${cmd.name}`,
+          priority: (cmd.priority === 'high' || cmd.priority === 'medium' || cmd.priority === 'low') ? cmd.priority : 'medium' as const,
+          type: 'command' as const,
+          icon: 'terminal'
+        }));
+    }
+  } catch (error) {
+    logger.error('Error getting remote commands', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      sessionId
+    });
+  }
+
+  // Fallback to common commands if remote discovery fails
   const commonCommands = [
     { text: 'ls', description: 'List directory contents', priority: 'high' as const },
     { text: 'cd', description: 'Change directory', priority: 'high' as const },
@@ -224,11 +250,56 @@ async function getCommandSuggestions(
     { text: 'find', description: 'Find files and directories', priority: 'medium' as const },
     { text: 'chmod', description: 'Change file permissions', priority: 'low' as const },
     { text: 'chown', description: 'Change file ownership', priority: 'low' as const },
+    { text: 'cp', description: 'Copy files', priority: 'medium' as const },
+    { text: 'mv', description: 'Move/rename files', priority: 'medium' as const },
+    { text: 'rm', description: 'Remove files', priority: 'medium' as const },
+    { text: 'mkdir', description: 'Create directory', priority: 'medium' as const },
+    { text: 'rmdir', description: 'Remove directory', priority: 'medium' as const },
+    { text: 'touch', description: 'Create empty file', priority: 'low' as const },
+    { text: 'nano', description: 'Text editor', priority: 'low' as const },
+    { text: 'vim', description: 'Vi text editor', priority: 'low' as const },
+    { text: 'emacs', description: 'Emacs text editor', priority: 'low' as const },
+    { text: 'ps', description: 'List processes', priority: 'low' as const },
+    { text: 'top', description: 'Display running processes', priority: 'low' as const },
+    { text: 'htop', description: 'Interactive process viewer', priority: 'low' as const },
+    { text: 'kill', description: 'Terminate processes', priority: 'low' as const },
+    { text: 'killall', description: 'Kill processes by name', priority: 'low' as const },
+    { text: 'which', description: 'Locate command', priority: 'low' as const },
+    { text: 'whereis', description: 'Locate binary, source, manual', priority: 'low' as const },
+    { text: 'man', description: 'Manual pages', priority: 'low' as const },
+    { text: 'history', description: 'Command history', priority: 'low' as const },
+    { text: 'alias', description: 'Create command alias', priority: 'low' as const },
+    { text: 'unalias', description: 'Remove command alias', priority: 'low' as const },
+    { text: 'export', description: 'Set environment variable', priority: 'low' as const },
+    { text: 'env', description: 'Display environment', priority: 'low' as const },
+    { text: 'echo', description: 'Display text', priority: 'medium' as const },
+    { text: 'printf', description: 'Format and print text', priority: 'low' as const },
+    { text: 'date', description: 'Display or set date', priority: 'low' as const },
+    { text: 'uptime', description: 'System uptime', priority: 'low' as const },
+    { text: 'whoami', description: 'Current username', priority: 'low' as const },
+    { text: 'id', description: 'User and group IDs', priority: 'low' as const },
+    { text: 'su', description: 'Switch user', priority: 'low' as const },
+    { text: 'sudo', description: 'Execute as another user', priority: 'medium' as const },
+    { text: 'ssh', description: 'Secure shell', priority: 'medium' as const },
+    { text: 'scp', description: 'Secure copy', priority: 'medium' as const },
+    { text: 'rsync', description: 'Remote sync', priority: 'medium' as const },
+    { text: 'wget', description: 'Download files', priority: 'medium' as const },
+    { text: 'curl', description: 'Transfer data', priority: 'medium' as const },
+    { text: 'tar', description: 'Archive files', priority: 'medium' as const },
+    { text: 'gzip', description: 'Compress files', priority: 'low' as const },
+    { text: 'gunzip', description: 'Decompress files', priority: 'low' as const },
+    { text: 'zip', description: 'Create zip archive', priority: 'low' as const },
+    { text: 'unzip', description: 'Extract zip archive', priority: 'low' as const },
+    { text: 'df', description: 'Disk space usage', priority: 'low' as const },
+    { text: 'du', description: 'Directory usage', priority: 'low' as const },
+    { text: 'free', description: 'Memory usage', priority: 'low' as const },
+    { text: 'mount', description: 'Mount filesystem', priority: 'low' as const },
+    { text: 'umount', description: 'Unmount filesystem', priority: 'low' as const },
   ];
 
   return commonCommands
     .filter(cmd => !currentWord || cmd.text.startsWith(currentWord))
-    .slice(0, mobileOptimized ? 5 : 10)
+    .slice(0, mobileOptimized ? 8 : 15)
     .map(cmd => ({
       ...cmd,
       type: 'command' as const,
@@ -236,11 +307,193 @@ async function getCommandSuggestions(
     }));
 }
 
-async function getFileSuggestions(): Promise<AutoCompleteSuggestion[]> {
-  // This would typically use SFTP to list directory contents
-  // For now, return mock suggestions
-  // Parameters removed as they're not currently used in the implementation
-  return [];
+async function getRemoteCommands(sessionId: string, prefix: string): Promise<Array<{name: string, description?: string, priority?: string}>> {
+  try {
+    // Use SSH to discover available commands on the remote system
+    const sshManager = await import('@/lib/ssh-manager');
+
+    // Try multiple methods to discover commands
+    const discoveryCommands = [
+      // Get commands from PATH
+      'echo $PATH | tr ":" "\\n" | head -10 | xargs -I {} find {} -maxdepth 1 -type f -executable 2>/dev/null | head -50',
+      // Get common commands from /usr/bin
+      'ls /usr/bin/ 2>/dev/null | head -30',
+      // Get commands from /bin
+      'ls /bin/ 2>/dev/null | head -20',
+      // Get built-in commands (bash)
+      'compgen -b 2>/dev/null | head -20',
+      // Get aliases
+      'alias 2>/dev/null | cut -d"=" -f1 | sed "s/alias //" | head -10'
+    ];
+
+    const commands = new Set<string>();
+
+    for (const cmd of discoveryCommands) {
+      try {
+        const result = await sshManager.sshManager.executeCommand(sessionId, cmd);
+        if (result.success && result.output) {
+          const lines = result.output.split('\n').filter((line: string) => line.trim());
+          for (const line of lines) {
+            const commandName = line.split('/').pop()?.trim();
+            if (commandName && commandName.length > 0 && !commandName.includes(' ')) {
+              if (!prefix || commandName.startsWith(prefix)) {
+                commands.add(commandName);
+              }
+            }
+          }
+        }
+      } catch {
+        // Continue with next discovery method if one fails
+        continue;
+      }
+    }
+
+    return Array.from(commands).map(name => ({
+      name,
+      description: `Remote command: ${name}`,
+      priority: 'medium'
+    }));
+
+  } catch (error) {
+    logger.error('Error discovering remote commands', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      sessionId
+    });
+    return [];
+  }
+}
+
+async function getFileSuggestions(
+  sessionId: string,
+  currentWord: string,
+  context: any,
+  mobileOptimized: boolean
+): Promise<AutoCompleteSuggestion[]> {
+  try {
+    // Get the current directory from context or default to current working directory
+    const currentDir = context.currentDirectory || '.';
+
+    // Determine the directory to list based on the current word
+    let targetDir = currentDir;
+    let filePrefix = currentWord;
+
+    // If current word contains a path separator, extract directory and filename parts
+    if (currentWord.includes('/')) {
+      const lastSlashIndex = currentWord.lastIndexOf('/');
+      const dirPart = currentWord.substring(0, lastSlashIndex + 1);
+      filePrefix = currentWord.substring(lastSlashIndex + 1);
+
+      // Handle absolute vs relative paths
+      if (dirPart.startsWith('/')) {
+        targetDir = dirPart;
+      } else {
+        targetDir = `${currentDir}/${dirPart}`.replace(/\/+/g, '/');
+      }
+    }
+
+    // Use SFTP to list directory contents
+    const sftpManager = await import('@/lib/sftp-manager');
+    const directoryListing = await sftpManager.sftpManager.listDirectory(sessionId, targetDir);
+
+    if (!directoryListing.items) {
+      return [];
+    }
+
+    // Filter and format file suggestions
+    const suggestions: AutoCompleteSuggestion[] = directoryListing.items
+      .filter(item => {
+        // Filter by prefix if provided
+        if (filePrefix && !item.name.startsWith(filePrefix)) {
+          return false;
+        }
+
+        // Skip hidden files unless prefix starts with dot
+        if (item.name.startsWith('.') && !filePrefix.startsWith('.')) {
+          return false;
+        }
+
+        return true;
+      })
+      .slice(0, mobileOptimized ? 8 : 15) // Limit results for mobile
+      .map(item => {
+        const isDirectory = item.type === 'directory';
+        const suggestion: AutoCompleteSuggestion = {
+          text: isDirectory ? `${item.name}/` : item.name,
+          type: isDirectory ? 'directory' : 'file',
+          description: isDirectory
+            ? `Directory: ${item.name}`
+            : `File: ${item.name} (${formatFileSize(item.size)})`,
+          priority: isDirectory ? 'medium' : 'low',
+          icon: isDirectory ? 'folder' : getFileIcon(item.name)
+        };
+
+        return suggestion;
+      })
+      .sort((a, b) => {
+        // Sort directories first, then files
+        if (a.type === 'directory' && b.type === 'file') return -1;
+        if (a.type === 'file' && b.type === 'directory') return 1;
+        return a.text.localeCompare(b.text);
+      });
+
+    return suggestions;
+
+  } catch (error) {
+    logger.error('Error getting file suggestions', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      sessionId,
+      currentWord: currentWord.substring(0, 50) // Log first 50 chars only
+    });
+
+    // Return empty array on error to avoid breaking autocomplete
+    return [];
+  }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function getFileIcon(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase();
+
+  switch (ext) {
+    case 'js':
+    case 'ts':
+    case 'jsx':
+    case 'tsx':
+      return 'code';
+    case 'json':
+    case 'xml':
+    case 'yaml':
+    case 'yml':
+      return 'settings';
+    case 'md':
+    case 'txt':
+    case 'log':
+      return 'file-text';
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'svg':
+      return 'image';
+    case 'pdf':
+      return 'file-pdf';
+    case 'zip':
+    case 'tar':
+    case 'gz':
+    case 'rar':
+      return 'archive';
+    default:
+      return 'file';
+  }
 }
 
 function getHistorySuggestions(

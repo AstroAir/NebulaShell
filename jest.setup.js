@@ -536,7 +536,17 @@ jest.mock('next/navigation', () => ({
 const mockXtermModules = () => {
   const { MockTerminal, MockFitAddon, MockWebLinksAddon } = require('./__tests__/mocks/xterm')
   return {
-    Terminal: jest.fn().mockImplementation(() => new MockTerminal()),
+    Terminal: jest.fn().mockImplementation(() => {
+      const instance = new MockTerminal()
+      // Ensure loadAddon method is properly mocked
+      instance.loadAddon = jest.fn((addon) => {
+        if (addon && typeof addon.activate === 'function') {
+          addon.activate(instance)
+        }
+        return instance
+      })
+      return instance
+    }),
     FitAddon: jest.fn().mockImplementation(() => new MockFitAddon()),
     WebLinksAddon: jest.fn().mockImplementation(() => new MockWebLinksAddon()),
   }
@@ -544,23 +554,23 @@ const mockXtermModules = () => {
 
 // Static imports
 jest.mock('@xterm/xterm', () => {
-  const mocks = mockXtermModules()
+  const { MockTerminal } = require('./__tests__/mocks/xterm')
   return {
-    Terminal: mocks.Terminal,
+    Terminal: MockTerminal,
   }
 })
 
 jest.mock('@xterm/addon-fit', () => {
-  const mocks = mockXtermModules()
+  const { MockFitAddon } = require('./__tests__/mocks/xterm')
   return {
-    FitAddon: mocks.FitAddon,
+    FitAddon: MockFitAddon,
   }
 })
 
 jest.mock('@xterm/addon-web-links', () => {
-  const mocks = mockXtermModules()
+  const { MockWebLinksAddon } = require('./__tests__/mocks/xterm')
   return {
-    WebLinksAddon: mocks.WebLinksAddon,
+    WebLinksAddon: MockWebLinksAddon,
   }
 })
 
@@ -568,21 +578,22 @@ jest.mock('@xterm/addon-web-links', () => {
 const originalImport = global.import || (() => Promise.reject(new Error('import() not supported')))
 global.import = jest.fn((moduleName) => {
   if (moduleName === '@xterm/xterm') {
-    const mocks = mockXtermModules()
+    const { MockTerminal } = require('./__tests__/mocks/xterm')
+    // Return the class directly so it can be used with 'new'
     return Promise.resolve({
-      Terminal: mocks.Terminal,
+      Terminal: MockTerminal,
     })
   }
   if (moduleName === '@xterm/addon-fit') {
-    const mocks = mockXtermModules()
+    const { MockFitAddon } = require('./__tests__/mocks/xterm')
     return Promise.resolve({
-      FitAddon: mocks.FitAddon,
+      FitAddon: MockFitAddon,
     })
   }
   if (moduleName === '@xterm/addon-web-links') {
-    const mocks = mockXtermModules()
+    const { MockWebLinksAddon } = require('./__tests__/mocks/xterm')
     return Promise.resolve({
-      WebLinksAddon: mocks.WebLinksAddon,
+      WebLinksAddon: MockWebLinksAddon,
     })
   }
   // Fall back to original import for other modules
@@ -962,6 +973,40 @@ jest.mock('ssh2-sftp-client', () => {
     exists: jest.fn(),
     stat: jest.fn().mockResolvedValue({ size: 1024 }),
   }))
+})
+
+// Mock Node.js crypto module
+jest.mock('crypto', () => {
+  const mockCipher = {
+    update: jest.fn(() => 'encrypted-part'),
+    final: jest.fn(() => '-final-part'),
+  }
+
+  const mockDecipher = {
+    update: jest.fn(() => 'decrypted-part'),
+    final: jest.fn(() => '-final-part'),
+  }
+
+  return {
+    randomBytes: jest.fn((size) => {
+      // Return a mock buffer with the specified size
+      const buffer = Buffer.alloc(size)
+      for (let i = 0; i < size; i++) {
+        buffer[i] = i % 256
+      }
+      return buffer
+    }),
+    createCipheriv: jest.fn(() => mockCipher),
+    createDecipheriv: jest.fn(() => mockDecipher),
+    createHash: jest.fn(() => ({
+      update: jest.fn().mockReturnThis(),
+      digest: jest.fn(() => 'mock-hash'),
+    })),
+    createHmac: jest.fn(() => ({
+      update: jest.fn().mockReturnThis(),
+      digest: jest.fn(() => 'mock-hmac'),
+    })),
+  }
 })
 
 // Mock crypto-js

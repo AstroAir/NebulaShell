@@ -42,7 +42,7 @@ describe('SSHConnectionForm Edge Cases and Error Scenarios', () => {
       useTerminalSpy.mockReturnValue({
         connect: mockConnect,
         disconnect: jest.fn(),
-        connectionStatus: { status: 'disconnected' },
+        connectionStatus: { status: 'error', message: 'Connection timeout after 30 seconds' },
         sessionId: null,
         socket: null,
         historyManager: {} as any,
@@ -92,7 +92,7 @@ describe('SSHConnectionForm Edge Cases and Error Scenarios', () => {
       useTerminalSpy.mockReturnValue({
         connect: mockConnect,
         disconnect: jest.fn(),
-        connectionStatus: { status: 'disconnected' },
+        connectionStatus: { status: 'error', message: 'Network is unreachable' },
         sessionId: null,
         socket: null,
         historyManager: {} as any,
@@ -135,7 +135,7 @@ describe('SSHConnectionForm Edge Cases and Error Scenarios', () => {
       useTerminalSpy.mockReturnValue({
         connect: mockConnect,
         disconnect: jest.fn(),
-        connectionStatus: { status: 'disconnected' },
+        connectionStatus: { status: 'error', message: 'getaddrinfo ENOTFOUND nonexistent.invalid' },
         sessionId: null,
         socket: null,
         historyManager: {} as any,
@@ -178,7 +178,7 @@ describe('SSHConnectionForm Edge Cases and Error Scenarios', () => {
       useTerminalSpy.mockReturnValue({
         connect: mockConnect,
         disconnect: jest.fn(),
-        connectionStatus: { status: 'disconnected' },
+        connectionStatus: { status: 'error', message: 'connect ECONNREFUSED 93.184.216.34:2222' },
         sessionId: null,
         socket: null,
         historyManager: {} as any,

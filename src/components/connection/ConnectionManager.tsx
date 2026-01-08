@@ -31,11 +31,11 @@ import {
   ChevronRight,
   Shield
 } from 'lucide-react';
-import { enhancedConnectionProfileManager, ConnectionProfile, ConnectionGroup, ConnectionTemplate } from '@/lib/connection-profiles-enhanced';
+import { connectionProfileManager, ConnectionProfile, ConnectionGroup, ConnectionTemplate } from '@/lib/connection-profile-manager';
 import { cn } from '@/lib/utils';
 import { useAccessibility } from '@/components/accessibility/AccessibilityProvider';
 
-interface EnhancedConnectionManagerProps {
+interface ConnectionManagerProps {
   onConnect?: (profile: ConnectionProfile) => void;
   onProfileCreate?: (profile: ConnectionProfile) => void;
   onProfileUpdate?: (profile: ConnectionProfile) => void;
@@ -43,12 +43,12 @@ interface EnhancedConnectionManagerProps {
   className?: string;
 }
 
-export function EnhancedConnectionManager({
+export function ConnectionManager({
   onConnect,
 
   onProfileDelete,
   className
-}: EnhancedConnectionManagerProps) {
+}: ConnectionManagerProps) {
   const [profiles, setProfiles] = useState<ConnectionProfile[]>([]);
   const [groups, setGroups] = useState<ConnectionGroup[]>([]);
   const [templates, setTemplates] = useState<ConnectionTemplate[]>([]);
@@ -64,20 +64,20 @@ export function EnhancedConnectionManager({
   }, []);
 
   const loadData = () => {
-    setProfiles(enhancedConnectionProfileManager.getAllProfiles());
-    setGroups(enhancedConnectionProfileManager.getAllGroups());
-    setTemplates(enhancedConnectionProfileManager.getAllTemplates());
+    setProfiles(connectionProfileManager.getAllProfiles());
+    setGroups(connectionProfileManager.getAllGroups());
+    setTemplates(connectionProfileManager.getAllTemplates());
   };
 
   const handleConnect = (profile: ConnectionProfile) => {
-    enhancedConnectionProfileManager.recordConnection(profile.id);
+    connectionProfileManager.recordConnection(profile.id);
     onConnect?.(profile);
     loadData(); // Refresh to update last used time
     announce(`Connecting to ${profile.name}`);
   };
 
   const handleToggleFavorite = (profileId: string) => {
-    const success = enhancedConnectionProfileManager.toggleFavorite(profileId);
+    const success = connectionProfileManager.toggleFavorite(profileId);
     if (success) {
       loadData();
       announce('Favorite status updated');
@@ -85,7 +85,7 @@ export function EnhancedConnectionManager({
   };
 
   const handleDeleteProfile = (profileId: string) => {
-    const success = enhancedConnectionProfileManager.deleteProfile(profileId);
+    const success = connectionProfileManager.deleteProfile(profileId);
     if (success) {
       onProfileDelete?.(profileId);
       loadData();
@@ -94,7 +94,7 @@ export function EnhancedConnectionManager({
   };
 
   const handleExportProfiles = () => {
-    const data = enhancedConnectionProfileManager.exportProfiles();
+    const data = connectionProfileManager.exportProfiles();
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -115,7 +115,7 @@ export function EnhancedConnectionManager({
     reader.onload = (e) => {
       try {
         const data = e.target?.result as string;
-        const success = enhancedConnectionProfileManager.importProfiles(data);
+        const success = connectionProfileManager.importProfiles(data);
         if (success) {
           loadData();
           announce('Profiles imported successfully');
@@ -172,11 +172,11 @@ export function EnhancedConnectionManager({
     profile.metadata.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const favoriteProfiles = enhancedConnectionProfileManager.getFavoriteProfiles();
-  const recentProfiles = enhancedConnectionProfileManager.getRecentProfiles();
-  const quickConnectProfiles = enhancedConnectionProfileManager.getQuickConnectProfiles();
-  const groupedProfiles = enhancedConnectionProfileManager.getGroupedProfiles();
-  const ungroupedProfiles = enhancedConnectionProfileManager.getUngroupedProfiles();
+  const favoriteProfiles = connectionProfileManager.getFavoriteProfiles();
+  const recentProfiles = connectionProfileManager.getRecentProfiles();
+  const quickConnectProfiles = connectionProfileManager.getQuickConnectProfiles();
+  const groupedProfiles = connectionProfileManager.getGroupedProfiles();
+  const ungroupedProfiles = connectionProfileManager.getUngroupedProfiles();
 
   const ProfileCard = ({ profile }: { profile: ConnectionProfile }) => (
     <Card className="p-3 hover:shadow-md transition-shadow cursor-pointer group">

@@ -4,7 +4,7 @@ use crate::transfer::TransferManager;
 use chrono::Utc;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::SystemTime;
 
 pub struct PerformanceMonitor {
     start_time: SystemTime,
@@ -115,47 +115,268 @@ impl PerformanceMonitor {
         }
     }
 
-    // Simulated system metric functions
-    // In a real implementation, these would use proper system APIs
-    
+    // Real system metric functions using platform-specific APIs
+
     fn get_cpu_usage(&self) -> f64 {
-        // Simulate CPU usage between 10-80%
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-        
-        let mut hasher = DefaultHasher::new();
-        SystemTime::now().hash(&mut hasher);
-        let hash = hasher.finish();
-        
-        10.0 + ((hash % 70) as f64)
+        // Use real CPU usage from system APIs
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(usage) = self.get_linux_cpu_usage() {
+                return usage;
+            }
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            if let Ok(usage) = self.get_windows_cpu_usage() {
+                return usage;
+            }
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            if let Ok(usage) = self.get_macos_cpu_usage() {
+                return usage;
+            }
+        }
+
+        // Fallback to simulated value if real metrics fail
+        50.0
     }
 
     fn get_memory_usage_percentage(&self) -> f64 {
-        // Simulate memory usage between 30-90%
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-        
-        let mut hasher = DefaultHasher::new();
-        (SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() / 10).hash(&mut hasher);
-        let hash = hasher.finish();
-        
-        30.0 + ((hash % 60) as f64)
+        let (total, used) = self.get_memory_info();
+        if total > 0 {
+            (used as f64 / total as f64) * 100.0
+        } else {
+            0.0
+        }
     }
 
     fn get_total_memory(&self) -> u64 {
-        // Simulate 8GB total memory
-        8 * 1024 * 1024 * 1024
+        self.get_memory_info().0
     }
 
     fn get_used_memory(&self) -> u64 {
-        let total = self.get_total_memory();
-        let usage_percent = self.get_memory_usage_percentage();
-        (total as f64 * (usage_percent / 100.0)) as u64
+        self.get_memory_info().1
+    }
+
+    fn get_memory_info(&self) -> (u64, u64) {
+        // Use real memory information from system APIs
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(info) = self.get_linux_memory_info() {
+                return info;
+            }
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            if let Ok(info) = self.get_windows_memory_info() {
+                return info;
+            }
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            if let Ok(info) = self.get_macos_memory_info() {
+                return info;
+            }
+        }
+
+        // Fallback values if real metrics fail
+        (8 * 1024 * 1024 * 1024, 4 * 1024 * 1024 * 1024) // 8GB total, 4GB used
     }
 
     fn get_load_average(&self) -> Option<Vec<f64>> {
-        // Simulate load averages for 1, 5, and 15 minutes
-        Some(vec![1.2, 1.5, 1.8])
+        // Use real load averages from system APIs
+        #[cfg(unix)]
+        {
+            if let Ok(loads) = self.get_unix_load_average() {
+                return Some(loads);
+            }
+        }
+
+        // Fallback for Windows or if Unix load average fails
+        None
+    }
+
+    // Platform-specific implementation methods
+
+    #[cfg(target_os = "linux")]
+    fn get_linux_cpu_usage(&self) -> Result<f64, Box<dyn std::error::Error>> {
+        use std::fs;
+
+        let stat_content = fs::read_to_string("/proc/stat")?;
+        let first_line = stat_content.lines().next().ok_or("No CPU stats found")?;
+        let values: Vec<u64> = first_line
+            .split_whitespace()
+            .skip(1)
+            .take(7)
+            .map(|s| s.parse().unwrap_or(0))
+            .collect();
+
+        if values.len() >= 4 {
+            let idle = values[3];
+            let total: u64 = values.iter().sum();
+            let usage = 100.0 - (idle as f64 / total as f64 * 100.0);
+            Ok(usage.max(0.0).min(100.0))
+        } else {
+            Err("Invalid CPU stats format".into())
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn get_linux_memory_info(&self) -> Result<(u64, u64), Box<dyn std::error::Error>> {
+        use std::fs;
+
+        let meminfo_content = fs::read_to_string("/proc/meminfo")?;
+        let mut total_kb = 0u64;
+        let mut available_kb = 0u64;
+
+        for line in meminfo_content.lines() {
+            if line.starts_with("MemTotal:") {
+                total_kb = line.split_whitespace().nth(1).unwrap_or("0").parse().unwrap_or(0);
+            } else if line.starts_with("MemAvailable:") {
+                available_kb = line.split_whitespace().nth(1).unwrap_or("0").parse().unwrap_or(0);
+            }
+        }
+
+        let total_bytes = total_kb * 1024;
+        let used_bytes = total_bytes - (available_kb * 1024);
+
+        Ok((total_bytes, used_bytes))
+    }
+
+    #[cfg(target_os = "windows")]
+    fn get_windows_cpu_usage(&self) -> Result<f64, Box<dyn std::error::Error>> {
+        use std::process::Command;
+
+        let output = Command::new("wmic")
+            .args(&["cpu", "get", "loadpercentage", "/value"])
+            .output()?;
+
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        for line in output_str.lines() {
+            if line.starts_with("LoadPercentage=") {
+                let value_str = line.split('=').nth(1).unwrap_or("0");
+                return Ok(value_str.parse().unwrap_or(0.0));
+            }
+        }
+
+        Err("Could not parse CPU usage".into())
+    }
+
+    #[cfg(target_os = "windows")]
+    fn get_windows_memory_info(&self) -> Result<(u64, u64), Box<dyn std::error::Error>> {
+        use std::process::Command;
+
+        let output = Command::new("wmic")
+            .args(&["OS", "get", "TotalVisibleMemorySize,FreePhysicalMemory", "/value"])
+            .output()?;
+
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        let mut total_kb = 0u64;
+        let mut free_kb = 0u64;
+
+        for line in output_str.lines() {
+            if line.starts_with("TotalVisibleMemorySize=") {
+                total_kb = line.split('=').nth(1).unwrap_or("0").parse().unwrap_or(0);
+            } else if line.starts_with("FreePhysicalMemory=") {
+                free_kb = line.split('=').nth(1).unwrap_or("0").parse().unwrap_or(0);
+            }
+        }
+
+        let total_bytes = total_kb * 1024;
+        let used_bytes = total_bytes - (free_kb * 1024);
+
+        Ok((total_bytes, used_bytes))
+    }
+
+    #[cfg(target_os = "macos")]
+    fn get_macos_cpu_usage(&self) -> Result<f64, Box<dyn std::error::Error>> {
+        use std::process::Command;
+
+        let output = Command::new("top")
+            .args(&["-l", "1", "-n", "0"])
+            .output()?;
+
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        for line in output_str.lines() {
+            if line.contains("CPU usage:") {
+                // Parse line like "CPU usage: 12.34% user, 5.67% sys, 81.99% idle"
+                if let Some(idle_part) = line.split("idle").next() {
+                    if let Some(idle_str) = idle_part.split_whitespace().last() {
+                        if let Ok(idle_percent) = idle_str.trim_end_matches('%').parse::<f64>() {
+                            return Ok(100.0 - idle_percent);
+                        }
+                    }
+                }
+            }
+        }
+
+        Err("Could not parse CPU usage from top output".into())
+    }
+
+    #[cfg(target_os = "macos")]
+    fn get_macos_memory_info(&self) -> Result<(u64, u64), Box<dyn std::error::Error>> {
+        use std::process::Command;
+
+        let output = Command::new("vm_stat").output()?;
+        let output_str = String::from_utf8_lossy(&output.stdout);
+
+        let mut page_size = 4096u64; // Default page size
+        let mut free_pages = 0u64;
+        let mut active_pages = 0u64;
+        let mut inactive_pages = 0u64;
+        let mut wired_pages = 0u64;
+
+        for line in output_str.lines() {
+            if line.starts_with("page size of") {
+                if let Some(size_str) = line.split_whitespace().nth(3) {
+                    page_size = size_str.parse().unwrap_or(4096);
+                }
+            } else if line.starts_with("Pages free:") {
+                free_pages = line.split_whitespace().nth(2).unwrap_or("0").trim_end_matches('.').parse().unwrap_or(0);
+            } else if line.starts_with("Pages active:") {
+                active_pages = line.split_whitespace().nth(2).unwrap_or("0").trim_end_matches('.').parse().unwrap_or(0);
+            } else if line.starts_with("Pages inactive:") {
+                inactive_pages = line.split_whitespace().nth(2).unwrap_or("0").trim_end_matches('.').parse().unwrap_or(0);
+            } else if line.starts_with("Pages wired down:") {
+                wired_pages = line.split_whitespace().nth(3).unwrap_or("0").trim_end_matches('.').parse().unwrap_or(0);
+            }
+        }
+
+        let total_pages = free_pages + active_pages + inactive_pages + wired_pages;
+        let used_pages = active_pages + inactive_pages + wired_pages;
+
+        let total_bytes = total_pages * page_size;
+        let used_bytes = used_pages * page_size;
+
+        Ok((total_bytes, used_bytes))
+    }
+
+    #[cfg(unix)]
+    fn get_unix_load_average(&self) -> Result<Vec<f64>, Box<dyn std::error::Error>> {
+        use std::process::Command;
+
+        let output = Command::new("uptime").output()?;
+        let output_str = String::from_utf8_lossy(&output.stdout);
+
+        // Parse load averages from uptime output
+        if let Some(load_part) = output_str.split("load average:").nth(1) {
+            let loads: Vec<f64> = load_part
+                .split(',')
+                .take(3)
+                .filter_map(|s| s.trim().parse().ok())
+                .collect();
+
+            if loads.len() == 3 {
+                return Ok(loads);
+            }
+        }
+
+        Err("Could not parse load averages".into())
     }
 
     // Methods to update metrics (would be called from various parts of the application)

@@ -11,56 +11,122 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Design system spacing scale using shadcn/ui tokens
+ * Simplified and harmonious spacing scale for consistent layouts
+ * Based on a 0.5rem (8px) base unit with clear semantic naming
  */
 export const spacing = {
-  xs: 'space-y-1',
-  sm: 'space-y-2',
-  md: 'space-y-4',
-  lg: 'space-y-6',
-  xl: 'space-y-8',
-  '2xl': 'space-y-12',
-  '3xl': 'space-y-16',
+  // Core numeric values (for specific use cases)
+  0: 'space-y-0',
+  px: 'space-y-px',
+  1: 'space-y-1',
+  2: 'space-y-2',
+  4: 'space-y-4',
+  6: 'space-y-6',
+  8: 'space-y-8',
+  12: 'space-y-12',
+  16: 'space-y-16',
+
+  // Semantic spacing (preferred for most use cases)
+  xs: 'space-y-2',    // 0.5rem - Tight spacing for related elements
+  sm: 'space-y-4',    // 1rem - Standard component spacing
+  md: 'space-y-6',    // 1.5rem - Section spacing
+  lg: 'space-y-8',    // 2rem - Large section spacing
+  xl: 'space-y-12',   // 3rem - Major layout spacing
 } as const;
 
 export const spacingX = {
-  xs: 'space-x-1',
-  sm: 'space-x-2',
-  md: 'space-x-4',
-  lg: 'space-x-6',
-  xl: 'space-x-8',
-  '2xl': 'space-x-12',
-  '3xl': 'space-x-16',
+  // Core numeric values
+  0: 'space-x-0',
+  px: 'space-x-px',
+  1: 'space-x-1',
+  2: 'space-x-2',
+  4: 'space-x-4',
+  6: 'space-x-6',
+  8: 'space-x-8',
+  12: 'space-x-12',
+  16: 'space-x-16',
+
+  // Semantic spacing (matches vertical spacing)
+  xs: 'space-x-2',
+  sm: 'space-x-4',
+  md: 'space-x-6',
+  lg: 'space-x-8',
+  xl: 'space-x-12',
 } as const;
 
 export const gap = {
-  xs: 'gap-1',
-  sm: 'gap-2',
-  md: 'gap-4',
-  lg: 'gap-6',
-  xl: 'gap-8',
-  '2xl': 'gap-12',
-  '3xl': 'gap-16',
+  // Core numeric values
+  0: 'gap-0',
+  px: 'gap-px',
+  1: 'gap-1',
+  2: 'gap-2',
+  4: 'gap-4',
+  6: 'gap-6',
+  8: 'gap-8',
+  12: 'gap-12',
+  16: 'gap-16',
+
+  // Semantic spacing (matches other spacing utilities)
+  xs: 'gap-2',
+  sm: 'gap-4',
+  md: 'gap-6',
+  lg: 'gap-8',
+  xl: 'gap-12',
 } as const;
 
 export const padding = {
-  xs: 'p-1',
-  sm: 'p-2',
-  md: 'p-4',
-  lg: 'p-6',
-  xl: 'p-8',
-  '2xl': 'p-12',
-  '3xl': 'p-16',
+  // Core numeric values
+  0: 'p-0',
+  px: 'p-px',
+  1: 'p-1',
+  2: 'p-2',
+  4: 'p-4',
+  6: 'p-6',
+  8: 'p-8',
+  12: 'p-12',
+  16: 'p-16',
+
+  // Semantic spacing (matches other spacing utilities)
+  xs: 'p-2',
+  sm: 'p-4',
+  md: 'p-6',
+  lg: 'p-8',
+  xl: 'p-12',
 } as const;
 
 export const margin = {
-  xs: 'm-1',
-  sm: 'm-2',
-  md: 'm-4',
-  lg: 'm-6',
-  xl: 'm-8',
-  '2xl': 'm-12',
-  '3xl': 'm-16',
+  // Core numeric values
+  0: 'm-0',
+  px: 'm-px',
+  1: 'm-1',
+  2: 'm-2',
+  4: 'm-4',
+  6: 'm-6',
+  8: 'm-8',
+  12: 'm-12',
+  16: 'm-16',
+
+  // Semantic spacing (matches other spacing utilities)
+  xs: 'm-2',
+  sm: 'm-4',
+  md: 'm-6',
+  lg: 'm-8',
+  xl: 'm-12',
+} as const;
+
+/**
+ * Responsive spacing utilities for consistent cross-device layouts
+ */
+export const responsiveSpacing = {
+  // Standard responsive progression: base -> md:+25% -> lg:+50%
+  container: 'px-4 md:px-6 lg:px-8',
+  section: 'py-8 md:py-12 lg:py-16',
+  component: 'p-4 md:p-6 lg:p-8',
+
+  // Touch-friendly spacing for interactive elements
+  touchTarget: 'min-h-[44px] min-w-[44px] md:min-h-[32px] md:min-w-[32px]',
+  buttonPadding: 'px-4 py-3 md:px-6 md:py-2',
+  inputPadding: 'px-4 py-3 md:px-3 md:py-2',
 } as const;
 
 /**
@@ -109,12 +175,43 @@ export const textColors = {
 
 export const borderColors = {
   default: 'border-border',
+  strong: 'border-border-strong',
+  subtle: 'border-border-subtle',
   input: 'border-input',
   primary: 'border-primary',
   secondary: 'border-secondary',
   muted: 'border-muted',
   accent: 'border-accent',
   destructive: 'border-destructive',
+} as const;
+
+/**
+ * Enhanced Border Radius Scale
+ */
+export const borderRadius = {
+  none: 'rounded-none',
+  xs: 'rounded-xs',
+  sm: 'rounded-sm',
+  md: 'rounded-md',
+  lg: 'rounded-lg',
+  xl: 'rounded-xl',
+  '2xl': 'rounded-2xl',
+  '3xl': 'rounded-3xl',
+  full: 'rounded-full',
+} as const;
+
+/**
+ * Enhanced Shadow System
+ */
+export const shadows = {
+  none: 'shadow-none',
+  xs: 'shadow-xs',
+  sm: 'shadow-sm',
+  md: 'shadow-md',
+  lg: 'shadow-lg',
+  xl: 'shadow-xl',
+  '2xl': 'shadow-2xl',
+  inner: 'shadow-inner',
 } as const;
 
 /**

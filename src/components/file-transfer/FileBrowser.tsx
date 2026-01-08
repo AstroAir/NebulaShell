@@ -300,18 +300,19 @@ export function FileBrowser({ className }: FileBrowserProps) {
         {/* File Drop Zone */}
         <div
           {...getRootProps()}
+          data-testid="drop-zone"
           className={`border-2 border-dashed rounded-lg p-4 mb-4 transition-colors ${
             isDragActive ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'
           }`}
         >
-          <input {...getInputProps()} />
-          <div className="text-center">
+          <input id="file-input" {...getInputProps()} />
+          <div className="text-center space-y-2">
             <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              {isDragActive
-                ? 'Drop files here to upload'
-                : 'Drag and drop files here, or click to select files'}
-            </p>
+            <p className="text-sm text-muted-foreground">Drag files here to upload</p>
+            <p className="text-sm text-muted-foreground">or click to select files</p>
+            <Button variant="outline" size="sm" asChild>
+              <label htmlFor="file-input">Select Files</label>
+            </Button>
           </div>
         </div>
 

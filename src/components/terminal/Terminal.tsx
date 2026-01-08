@@ -890,7 +890,7 @@ export function Terminal({ className, sessionId: propSessionId }: TerminalProps)
           data-testid="terminal-container"
           role="region"
           aria-label="Terminal"
-          className="w-full h-full min-h-[400px] bg-gradient-to-br from-terminal-background to-terminal-background/95 relative"
+          className="w-full h-full min-h-[320px] bg-[hsl(var(--terminal-background))] relative"
           style={{
             fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "SF Mono", Monaco, Consolas, "Ubuntu Mono", monospace'
           }}

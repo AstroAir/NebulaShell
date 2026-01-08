@@ -25,7 +25,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { enhancedTerminalHistoryManager, HistoryEntry, HistorySearchOptions } from '@/lib/terminal-history-enhanced';
+import { terminalHistoryManager, HistoryEntry, HistorySearchOptions } from '@/lib/terminal-history-manager';
 import { cn } from '@/lib/utils';
 import { useAccessibility } from '@/components/accessibility/AccessibilityProvider';
 import { useDebounce } from '@/hooks/use-performance-monitor';
@@ -40,7 +40,7 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
   const [searchResults, setSearchResults] = useState<HistoryEntry[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<HistorySearchOptions>({});
   const [showFilters, setShowFilters] = useState(false);
-  const [stats, setStats] = useState(enhancedTerminalHistoryManager.getStats());
+  const [stats, setStats] = useState(terminalHistoryManager.getEnhancedStats());
   const { announce } = useAccessibility();
 
   const debouncedQuery = useDebounce(searchQuery, 300);
@@ -53,7 +53,7 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
         limit: 100,
       };
 
-      const results = enhancedTerminalHistoryManager.search(options);
+      const results = terminalHistoryManager.searchEnhanced(options);
       setSearchResults(results);
 
       if (debouncedQuery) {
@@ -72,7 +72,7 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
   }, [debouncedQuery, selectedFilters, performSearch]);
 
   useEffect(() => {
-    setStats(enhancedTerminalHistoryManager.getStats());
+    setStats(terminalHistoryManager.getEnhancedStats());
   }, [searchResults]);
 
   const handleCommandSelect = (command: string) => {
@@ -81,7 +81,7 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
   };
 
   const handleToggleFavorite = (entryId: string) => {
-    const success = enhancedTerminalHistoryManager.toggleFavorite(entryId);
+    const success = terminalHistoryManager.toggleFavorite(entryId);
     if (success) {
       performSearch(); // Refresh results
       announce('Favorite status updated');
@@ -99,7 +99,7 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
   };
 
   const handleExportHistory = () => {
-    const data = enhancedTerminalHistoryManager.exportHistory();
+    const data = terminalHistoryManager.exportEnhancedHistory();
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -148,7 +148,7 @@ export function CommandHistorySearch({ onCommandSelect, className }: CommandHist
   };
 
   const mostUsedCommands = useMemo(() => {
-    return enhancedTerminalHistoryManager.getMostUsedCommands(10);
+    return terminalHistoryManager.getMostUsedCommands(10);
   }, []);
 
   return (

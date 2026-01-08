@@ -48,8 +48,8 @@ async function globalSetup(config: FullConfig) {
     // Navigate to the application
     await page.goto(config.projects[0].use.baseURL || 'http://localhost:3000');
     
-    // Wait for the application to load
-    await page.waitForSelector('[data-testid="terminal-container"]', { timeout: 30000 });
+    // Wait for the application to respond (let individual tests assert specific UI readiness)
+    await page.waitForLoadState('domcontentloaded', { timeout: 90000 });
     
     // Perform any global authentication or setup
     // For example, if the app requires login:

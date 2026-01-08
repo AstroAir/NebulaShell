@@ -17,6 +17,7 @@ import {
   Activity,
 } from 'lucide-react';
 
+import { cn } from '@/lib/utils';
 interface MobileNavigationProps {
   activeTransfers?: any[];
 }
@@ -39,49 +40,92 @@ export const MobileNavigation = memo(function MobileNavigation({ activeTransfers
   return (
     <div
       ref={containerRef}
-      className="h-full flex flex-col container-query bg-gradient-to-b from-background to-background/95"
+      className={cn(
+        "h-full flex flex-col container-query",
+        "bg-gradient-to-b from-card/96 via-background/99 to-background/96",
+        "backdrop-blur-md border-t border-border/30"
+      )}
       onClick={handleInteraction}
     >
       <Tabs defaultValue="profiles" className="flex-1 flex flex-col">
-        <TabsList className={`grid w-full grid-cols-${tabCols} mx-4 mt-4 bg-muted/50 backdrop-blur-sm`}>
-          <TabsTrigger value="profiles" className="flex flex-col items-center gap-1 py-3 touch-target transition-all duration-200 hover:bg-accent/80">
-            <Bookmark className="h-4 w-4" />
-            <span className="text-xs font-medium">Profiles</span>
+        <TabsList className={cn(
+          `grid w-full grid-cols-${tabCols}`,
+          "mx-4 mt-6 mb-2 p-2",
+          "bg-gradient-to-r from-muted/40 via-muted/60 to-muted/40",
+          "backdrop-blur-md border border-border/30",
+          "shadow-lg rounded-2xl"
+        )}>
+          <TabsTrigger value="profiles" className={cn(
+            "group flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl",
+            "transition-all duration-300 min-h-[60px] min-w-[60px]",
+            "hover:bg-accent/80 hover:scale-105 hover:shadow-sm",
+            "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+            "data-[state=active]:shadow-md data-[state=active]:scale-105"
+          )}>
+            <Bookmark className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+            <span className="text-xs font-semibold tracking-wide">Profiles</span>
           </TabsTrigger>
-          <TabsTrigger value="connect" className="flex flex-col items-center gap-1 py-3 touch-target transition-all duration-200 hover:bg-accent/80">
-            <Settings className="h-4 w-4" />
-            <span className="text-xs font-medium">Connect</span>
+          <TabsTrigger value="connect" className={cn(
+            "group flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl",
+            "transition-all duration-300 min-h-[60px] min-w-[60px]",
+            "hover:bg-accent/80 hover:scale-105 hover:shadow-sm",
+            "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+            "data-[state=active]:shadow-md data-[state=active]:scale-105"
+          )}>
+            <Settings className="h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
+            <span className="text-xs font-semibold tracking-wide">Connect</span>
           </TabsTrigger>
-          <TabsTrigger value="files" className="flex flex-col items-center gap-1 py-3 touch-target transition-all duration-200 hover:bg-accent/80">
-            <FolderOpen className="h-4 w-4" />
-            <span className="text-xs font-medium">Files</span>
+          <TabsTrigger value="files" data-testid="files-tab" className={cn(
+            "group flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl",
+            "transition-all duration-300 min-h-[60px] min-w-[60px]",
+            "hover:bg-accent/80 hover:scale-105 hover:shadow-sm",
+            "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+            "data-[state=active]:shadow-md data-[state=active]:scale-105"
+          )}>
+            <FolderOpen className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+            <span className="text-xs font-semibold tracking-wide">Files</span>
           </TabsTrigger>
-          <TabsTrigger value="sessions" className="flex flex-col items-center gap-1 py-3 touch-target transition-all duration-200 hover:bg-accent/80">
-            <Activity className="h-4 w-4" />
-            <span className="text-xs font-medium">Sessions</span>
+          <TabsTrigger value="sessions" className={cn(
+            "group flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl",
+            "transition-all duration-300 min-h-[60px] min-w-[60px]",
+            "hover:bg-accent/80 hover:scale-105 hover:shadow-sm",
+            "data-[state=active]:bg-primary data-[state=active]:text-primary-foreground",
+            "data-[state=active]:shadow-md data-[state=active]:scale-105"
+          )}>
+            <Activity className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+            <span className="text-xs font-semibold tracking-wide">Sessions</span>
           </TabsTrigger>
         </TabsList>
 
         <ScrollArea className="flex-1 touch-scroll-smooth">
-          <TabsContent value="profiles" className="mt-4 px-4 pb-6 content-spacing">
-            <ConnectionProfiles />
+          <TabsContent value="profiles" className="mt-6 px-6 pb-8 content-spacing">
+            <div className="glass-card rounded-2xl p-4 shadow-lg">
+              <ConnectionProfiles />
+            </div>
           </TabsContent>
 
-          <TabsContent value="connect" className="mt-4 px-4 pb-6 content-spacing">
-            <SSHConnectionForm />
+          <TabsContent value="connect" className="mt-6 px-6 pb-8 content-spacing">
+            <div className="glass-card rounded-2xl p-4 shadow-lg">
+              <SSHConnectionForm />
+            </div>
           </TabsContent>
 
-          <TabsContent value="files" className="mt-4 px-4 pb-6 content-spacing space-y-4">
-            <FileBrowser />
+          <TabsContent value="files" className="mt-6 px-6 pb-8 content-spacing space-y-6">
+            <div className="glass-card rounded-2xl p-4 shadow-lg">
+              <FileBrowser />
+            </div>
             {activeTransfers.length > 0 && (
-              <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+              <div className="glass-subtle rounded-xl p-4 border border-border/40 shadow-md">
+                <h3 className="text-sm font-semibold mb-3 text-foreground/80">File Transfers</h3>
                 <TransferProgress transfers={activeTransfers} />
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="sessions" className="mt-4 px-4 pb-6 content-spacing">
-            <SessionManager />
+          <TabsContent value="sessions" className="mt-6 px-6 pb-8 content-spacing">
+            <div className="glass-card rounded-2xl p-4 shadow-lg">
+              <SessionManager />
+            </div>
           </TabsContent>
         </ScrollArea>
       </Tabs>
